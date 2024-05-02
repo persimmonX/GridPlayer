@@ -1,0 +1,47 @@
+.xgplayer {
+  .xgplayer-controls {
+    align-items: center;
+    .xg-center-grid {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      top: 0;
+      margin-left: 10px;
+      margin-right: 10px;
+      .xgplayer-progress {
+        .xgplayer-progress-outer {
+          //   height: 15px !important;
+        }
+      }
+    }
+    .xgplayer-progress-btn {
+      border-radius: 5px !important;
+    }
+    .xg-left-grid {
+      .xgplayer-time {
+        flex-wrap: nowrap;
+      }
+    }
+  }
+  .xgplayer-loading {
+    // display: none!important;
+    width: 20px;
+    height: 20px;
+  }
+  //   .xgplayer-volume {
+  //     // height: 80px;
+  //     .xgplayer-slider {
+  //         .xgplayer-bar {
+  //             width: 15px;
+  //             border-radius: 3px;
+  //             .xgplayer-drag {
+  //                 width: 15px;
+  //                 border-radius: 2px;
+  //                 border-bottom-left-radius: 0px;
+  //                 border-bottom-right-radius: 0px;
+  //             }
+  //         }
+  //     }
+  //   }
+}
