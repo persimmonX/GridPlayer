@@ -9,8 +9,9 @@ const resultValue = ref([]);
 let editor: null | Ace.Ace.Editor = null;
 onMounted(() => {
   editor = Ace.edit(editorDom.value);
+  editor.getSession().setMode(new mode.Mode()); // 设置模式（例如，JavaScript）
   editor.setTheme(dracula);
-  editor.getSession().setMode(mode); // 设置模式（例如，JavaScript）
+
   editor.setShowPrintMargin(false);
   editor.setValue(`/**
  * 执行脚本
@@ -25,6 +26,7 @@ function main() {
     editor?.setValue(script);
   });
 });
+
 const openInput = () => {
   let text = editor?.getValue();
   let resolve = window.ipcRenderer.invoke("confirm-script", text);
@@ -87,7 +89,6 @@ const importScript = () => {
   </div>
 </template>
 <style lang="scss" scoped>
-@import url("../../../node_modules/ace-code/styles/theme/dracula.css");
 .box {
   width: 100%;
   height: 100%;
