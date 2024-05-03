@@ -16,6 +16,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "ace-code": "^1.33.1",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "express": "^4.19.2",

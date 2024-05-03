@@ -10,7 +10,7 @@ import fs from "fs";
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
+const vm = require("vm");
 // The built directory structure
 //
 // ├─┬─┬ dist
@@ -29,6 +29,8 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
 let win: BrowserWindow | null;
+let linkPopup: null | BrowserWindow = null;
+let scriptPopup: null | BrowserWindow = null;
 let devToolIsOpen = false;
 const popups: BrowserWindow[] = [];
 let template: Array<MenuItemConstructorOptions> = [
@@ -42,7 +44,7 @@ let template: Array<MenuItemConstructorOptions> = [
     ],
   },
 ];
-let linkPopup: null | BrowserWindow = null;
+
 const menus = Menu.buildFromTemplate(template);
 // Menu.setApplicationMenu(null);
 function addFile() {
@@ -70,7 +72,7 @@ function createPopupWindow(hashPath: string, title?: string, width = 500, height
     height: height,
     title: title,
     show: false,
-    resizable: false,
+    // resizable: false,
     icon: path.join(__dirname, "../public/main/png/16x16.png"),
     backgroundColor: "red",
     webPreferences: {
@@ -124,6 +126,52 @@ function createWindow() {
             linkPopup = createPopupWindow("link", "外部连接", 500, 200);
           },
         },
+        {
+          label: "使用脚本     Ctrl+X",
+          icon: path.join(__dirname, "../public/basic/179-document.png"),
+          click: () => {
+            // 播放在线视频
+            scriptPopup = createPopupWindow("script", "脚本", 1200, 750);
+            scriptPopup.webContents.on("context-menu", (e, params) => {
+              const recentScriptFiles = path.resolve(__dirname, "/history/recentScriptFiles.txt");
+              if (fs.existsSync(recentScriptFiles)) {
+                let text = fs.readFileSync(recentScriptFiles, "utf-8");
+                let template: any = [];
+                if (!text) {
+                  template.push({
+                    label: "暂无保存记录",
+                  });
+                } else {
+                  const history = text
+                    .split("\n")
+                    .filter(item => Boolean(item))
+                    .map(item => {
+                      return item.split("|");
+                    });
+                  template = history.map(item => {
+                    return {
+                      label: item[1],
+                      click: () => {
+                        const script = fs.readFileSync(item[1], "utf-8");
+                        scriptPopup?.webContents.send("history-script", script);
+                      },
+                    };
+                  });
+                  template.push({
+                    label: "清空播放历史",
+                    click: () => {
+                      console.log("clear recentScriptFiles");
+                      fs.truncate(recentScriptFiles, 0, () => {});
+                    },
+                  });
+                }
+
+                let historySavedMenu = Menu.buildFromTemplate(template);
+                historySavedMenu.popup();
+              }
+            });
+          },
+        },
       ],
     },
     {
@@ -134,7 +182,6 @@ function createWindow() {
         createPopupWindow("svg", "svg");
         //获取/public/basic/*.svg
 
-        // console.log("🐤 - createWindow - files:", files);
       },
     },
     {
@@ -146,16 +193,24 @@ function createWindow() {
     },
     {
       label: "打开控制台    Ctrl+O",
-      icon: path.join(__dirname, "../public/basic/107-image.png"),
+      icon: path.join(__dirname, "../public/basic/128-monitor.png"),
       click: () => {
         // 播放在线视频
         toggleDev();
       },
     },
+    {
+      label: "重载窗口   CTRL+R",
+      icon: path.join(__dirname, "../public/basic/188-recycle.png"),
+      role: "reload",
+      click: () => {
+        // 播放在线视频
+      },
+    },
 
     {
       label: "关于",
-      icon: path.join(__dirname, "../public/basic/107-image.png"),
+      icon: path.join(__dirname, "../public/basic/132-note.png"),
       click: () => {
         // 播放在线视频
         createPopupWindow("about", "关于");
@@ -268,6 +323,90 @@ ipcMain.on("confirm-link", (e, links) => {
       linkPopup?.close();
     });
   }
+});
+
+ipcMain.handle("confirm-script", (_e, text) => {
+  return new Promise(resolve => {
+    try {
+      text += "main();";
+      const result = vm.runInNewContext(text);
+      resolve(result);
+    } catch (error) {
+      console.error("Error executing code:", error);
+    }
+  });
+});
+ipcMain.on("play-script", (_e, links) => {
+  for (let link of links) {
+    addPlayLink(link).then(({ url, id, name }: any) => {
+      win?.webContents.send("addWidget", { id, name, url });
+      scriptPopup?.close();
+    });
+  }
+});
+ipcMain.on("cancel-script", _e => {
+  scriptPopup?.close();
+});
+ipcMain.on("save-script", (_e, text) => {
+  dialog
+    .showSaveDialog({
+      title: "保存脚本",
+      filters: [
+        { name: "Text Files", extensions: ["js"] },
+        { name: "All Files", extensions: ["*"] },
+      ],
+    })
+    .then(result => {
+      if (!result.canceled) {
+        // 发送文件路径给渲染进程
+        let filePath = result.filePath;
+        fs.writeFileSync(filePath, text);
+        const recentScriptFiles = path.resolve(__dirname, "/history/recentScriptFiles.txt");
+        const data = `${Date.now()}|${filePath}\n`;
+        if (!fs.existsSync(filePath)) {
+          fs.mkdirSync(path.resolve(__dirname, "/history"));
+        }
+        fs.appendFile(recentScriptFiles, data, { encoding: "utf8", flag: "a" }, err => {
+          if (err) throw err;
+          console.log("ipcMain.on - recentScriptFiles:", recentScriptFiles);
+        });
+      }
+    })
+    .catch(err => {
+      console.error(err);
+    });
+});
+ipcMain.handle("import-script", _e => {
+  const options = {
+    title: "选择文件",
+    properties: ["openFile"], // 只允许选择文件
+    filters: [
+      { name: "Text Files", extensions: ["js"] }, // 限制文件类型为.txt
+      { name: "All Files", extensions: ["*"] },
+    ],
+  };
+  return new Promise((resolve, reject) => {
+    if (!scriptPopup) {
+      resolve("");
+      return;
+    }
+
+    dialog //@ts-ignore
+      .showOpenDialog(scriptPopup, options)
+      .then(result => {
+        if (!result.canceled) {
+          const text = fs.readFileSync(result.filePaths[0], "utf-8");
+          // 处理文件...
+          resolve(text);
+        } else {
+          resolve("");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        reject("error");
+      });
+  });
 });
 
 //changeToPNG
