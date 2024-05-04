@@ -56,12 +56,14 @@ function getMainWindowPopup(type?: "played"): any {
       icon: path.join(__dirname, "../public/basic/003-add.png"),
       submenu: [
         {
-          label: "添加文件     Ctrl+A",
+          label: "添加文件",
+          accelerator: "CmdOrCtrl+A",
           icon: path.join(__dirname, "../public/basic/065-archives.png"),
           click: addFile,
         },
         {
-          label: "添加URL     Ctrl+U",
+          label: "添加URL",
+          accelerator: "CmdOrCtrl+U",
           icon: path.join(__dirname, "../public/basic/088-thunder.png"),
           click: () => {
             // 播放在线视频
@@ -69,8 +71,9 @@ function getMainWindowPopup(type?: "played"): any {
           },
         },
         {
-          label: "使用脚本     Ctrl+X",
+          label: "使用脚本",
           icon: path.join(__dirname, "../public/basic/179-document.png"),
+          accelerator: "CmdOrCtrl+X",
           click: () => {
             // 播放在线视频
             scriptPopup = createPopupWindow("script", "脚本", 1200, 750);
@@ -124,7 +127,8 @@ function getMainWindowPopup(type?: "played"): any {
       },
     },
     {
-      label: "重载程序   CTRL+R",
+      label: "重载程序",
+      accelerator: "CmdOrCtrl+R",
       icon: path.join(__dirname, "../public/basic/188-recycle.png"),
       role: "reload",
       click: () => {
@@ -145,14 +149,16 @@ function getMainWindowPopup(type?: "played"): any {
           icon: path.join(__dirname, "../public/basic/223-video.png"),
           submenu: [
             {
-              label: "暂停   Ctrl+Shift+P",
+              label: "暂停",
+              accelerator: "CmdOrCtrl+Shift+P",
               icon: path.join(__dirname, "../public/basic/140-pause.png"),
               click: () => {
                 win?.webContents.send("setAllPause");
               },
             },
             {
-              label: "播放   Ctrl+P",
+              label: "播放",
+              accelerator: "CmdOrCtrl+P",
               icon: path.join(__dirname, "../public/basic/145-play.png"),
               click: () => {
                 win?.webContents.send("setAllStart");
@@ -165,14 +171,16 @@ function getMainWindowPopup(type?: "played"): any {
           icon: path.join(__dirname, "../public/basic/130-note.png"),
           submenu: [
             {
-              label: "静音   Ctrl+M",
+              label: "静音",
+              accelerator: "CmdOrCtrl+M",
               icon: path.join(__dirname, "../public/basic/226-mute.png"),
               click: () => {
                 win?.webContents.send("setAllMute");
               },
             },
             {
-              label: "解除静音 Ctrl+Shift+M",
+              label: "解除静音",
+              accelerator: "CmdOrCtrl+Shift+M",
               icon: path.join(__dirname, "../public/basic/227-low volume.png"),
               click: () => {
                 win?.webContents.send("setAllReleaseMute");
@@ -202,10 +210,65 @@ function getMainWindowPopup(type?: "played"): any {
         },
       ],
     },
+    {
+      label: "裁剪",
+      icon: path.join(__dirname, "../public/basic/047-compress.png"),
+      submenu: [
+        {
+          label: "放大",
+          accelerator: "CmdOrCtrl+numadd",
+          icon: path.join(__dirname, "../public/basic/235-zoom in.png"),
+          click: () => {
+            win?.webContents.send("scale-add");
+          },
+        },
+        {
+          label: "缩小",
+          accelerator: "CmdOrCtrl+numsub",
+          icon: path.join(__dirname, "../public/basic/236-zoom out.png"),
+          click: () => {
+            win?.webContents.send("scale-reduce");
+          },
+        },
+        {
+          label: "↑",
+          accelerator: "CmdOrCtrl+Up",
+          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          click: () => {
+            win?.webContents.send("move-up");
+          },
+        },
+        {
+          label: "↓",
+          accelerator: "CmdOrCtrl+Down",
+          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          click: () => {
+            win?.webContents.send("move-down");
+          },
+        },
+        {
+          label: "←",
+          accelerator: "CmdOrCtrl+Left",
+          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          click: () => {
+            win?.webContents.send("move-left");
+          },
+        },
+        {
+          label: "→",
+          accelerator: "CmdOrCtrl+Right",
+          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          click: () => {
+            win?.webContents.send("move-right");
+          },
+        },
+      ],
+    },
   ];
   let dev = [
     {
-      label: "打开控制台    Ctrl+O",
+      label: "打开控制台",
+      accelerator: "CmdOrCtrl+O",
       icon: path.join(__dirname, "../public/basic/128-monitor.png"),
       click: () => {
         // 播放在线视频
@@ -345,40 +408,60 @@ function createWindow() {
 
   // 当窗口获得焦点时注册快捷键
   win.on("focus", () => {
-    globalShortcut.register("ctrl+A", addFile);
-    globalShortcut.register("ctrl+O", () => {
-      toggleDev();
-    });
-    globalShortcut.register("ctrl+H", () => {
+    globalShortcut.register("CmdOrCtrl+A", addFile);
+    globalShortcut.register("CmdOrCtrl+H", () => {
       if (win?.isFullScreen()) {
         win?.setFullScreen(false);
       } else {
         win?.setFullScreen(true);
       }
     });
-    globalShortcut.register("ctrl+m", () => {
+    globalShortcut.register("CmdOrCtrl+m", () => {
       win?.webContents.send("setAllMute");
     });
-    globalShortcut.register("ctrl+shift+m", () => {
+    globalShortcut.register("CmdOrCtrl+shift+m", () => {
       win?.webContents.send("setAllReleaseMute");
     });
-    globalShortcut.register("Ctrl+P", () => {
+    globalShortcut.register("CmdOrCtrl+P", () => {
       win?.webContents.send("setAllStart");
     });
-    globalShortcut.register("Ctrl+shift+P", () => {
+    globalShortcut.register("CmdOrCtrl+shift+P", () => {
       win?.webContents.send("setAllPause");
+    });
+    globalShortcut.register("CmdOrCtrl+numadd", () => {
+      win?.webContents.send("scale-add");
+    });
+    globalShortcut.register("CmdOrCtrl+numsub", () => {
+      win?.webContents.send("scale-reduce");
+    });
+    globalShortcut.register("CmdOrCtrl+Up", () => {
+      win?.webContents.send("move-up");
+    });
+    globalShortcut.register("CmdOrCtrl+Down", () => {
+      win?.webContents.send("move-down");
+    });
+    globalShortcut.register("CmdOrCtrl+Right", () => {
+      win?.webContents.send("move-right");
+    });
+    globalShortcut.register("CmdOrCtrl+Left", () => {
+      win?.webContents.send("move-left");
     });
   });
 
   // 当窗口失去焦点时注销快捷键
   win.on("blur", () => {
-    globalShortcut.unregister("ctrl+A");
-    globalShortcut.unregister("ctrl+O");
-    globalShortcut.unregister("ctrl+H");
-    globalShortcut.unregister("ctrl+m");
-    globalShortcut.unregister("ctrl+shift+m");
-    globalShortcut.unregister("ctrl+p");
-    globalShortcut.unregister("ctrl+shift+p");
+    globalShortcut.unregister("CmdOrCtrl+A");
+    globalShortcut.unregister("CmdOrCtrl+H");
+    globalShortcut.unregister("CmdOrCtrl+m");
+    globalShortcut.unregister("CmdOrCtrl+shift+m");
+    globalShortcut.unregister("CmdOrCtrl+p");
+    globalShortcut.unregister("CmdOrCtrl+shift+p");
+    globalShortcut.unregister("CmdOrCtrl+numadd");
+    globalShortcut.unregister("CmdOrCtrl+numsub");
+    globalShortcut.unregister("CmdOrCtrl+Up");
+    globalShortcut.unregister("CmdOrCtrl+Down");
+    globalShortcut.unregister("CmdOrCtrl+Right");
+    globalShortcut.unregister("CmdOrCtrl+Left");
   });
 }
 ipcMain.handle("viewSvg", async (event, data) => {

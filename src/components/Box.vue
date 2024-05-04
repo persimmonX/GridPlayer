@@ -15,6 +15,9 @@ const select = ref(false);
 const playerDom = ref();
 let isMove = false;
 let plugins: any = [];
+let scale = 1;
+let moveXPercent = 0;
+let moveYPercent = 0;
 const disapear = () => {
   if (!isMove) {
     setTimeout(() => {
@@ -32,13 +35,14 @@ onMounted(() => {
   box.value.onmousemove = () => {
     //激活5
     active.value = true;
-
+    select.value = true;
     store.$state.currentWidget = id;
     disapear();
     isMove = true;
   };
   box.value.onmouseleave = () => {
     active.value = false;
+    select.value = false;
   };
   if (url?.endsWith(".m3u8")) {
     plugins.push(HlsJsPlugin);
@@ -56,6 +60,7 @@ onMounted(() => {
     mode: "cors",
     loading: false,
     loop: true,
+    closeVideoClick: true,
     plugins: plugins,
     // fitVideoSize: "fixWidth",
     videoFillMode: "cover",
@@ -68,7 +73,97 @@ onMounted(() => {
     isLive: false,
     // plugins: [Mp4Plugin],
   });
-  window.ipcRenderer.on("", () => {});
+  window.ipcRenderer.on("scale-add", () => {
+    if (select.value) {
+      let vDom = playerDom.value?.querySelector("video");
+      if (vDom) {
+        scale += 0.5;
+        if (scale > 5) {
+          scale = 5;
+        }
+        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+        if (Math.abs(moveXPercent) > maxPercent) {
+          moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
+        }
+
+        if (Math.abs(moveYPercent) > maxPercent) {
+          moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
+        }
+        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+      }
+    }
+  });
+  window.ipcRenderer.on("scale-reduce", () => {
+    if (select.value) {
+      let vDom = playerDom.value?.querySelector("video");
+      if (vDom) {
+        scale -= 0.5;
+        if (scale < 1) scale = 1;
+        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+        if (Math.abs(moveXPercent) > maxPercent) {
+          moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
+        }
+
+        if (Math.abs(moveYPercent) > maxPercent) {
+          moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
+        }
+        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+      }
+    }
+  });
+  window.ipcRenderer.on("move-up", () => {
+    if (select.value) {
+      let vDom = playerDom.value?.querySelector("video");
+      if (vDom) {
+        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+        moveYPercent++;
+        if (moveYPercent > maxPercent) {
+          moveYPercent = maxPercent;
+        }
+        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      }
+    }
+  });
+  window.ipcRenderer.on("move-down", () => {
+    if (select.value) {
+      let vDom = playerDom.value?.querySelector("video");
+      if (vDom) {
+        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+        moveYPercent--;
+        if (moveYPercent < -maxPercent) {
+          moveYPercent = -maxPercent;
+        }
+        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      }
+    }
+  });
+
+  window.ipcRenderer.on("move-left", () => {
+    if (select.value) {
+      let vDom = playerDom.value?.querySelector("video");
+      if (vDom) {
+        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+        moveXPercent++;
+        if (moveXPercent > maxPercent) {
+          moveXPercent = maxPercent;
+        }
+        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      }
+    }
+  });
+  window.ipcRenderer.on("move-right", () => {
+    if (select.value) {
+      let vDom = playerDom.value?.querySelector("video");
+      if (vDom) {
+        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+        moveXPercent--;
+        if (moveXPercent < -maxPercent) {
+          moveXPercent = -maxPercent;
+        }
+        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      }
+    }
+  });
 });
 mitter.on("setAllMute", (value: boolean) => {
   if (player) {

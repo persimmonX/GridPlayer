@@ -165,8 +165,18 @@ onMounted(() => {
       });
       grid.batchUpdate();
       grid.commit();
+      layoutFill();
     }
   });
+  grid.on("resizestart", (e, t) => {
+    startDrag = true;
+    console.log("resize", e, t);
+  });
+  grid.on("resizestop", (e, t) => {
+    startDrag = false;
+    console.log("resizestop", e, t);
+  });
+
   window.ipcRenderer.on("addWidget", addWidget);
   window.ipcRenderer.on("removeWidget", removeWidget);
   window.addEventListener("resize", () => {
@@ -186,7 +196,6 @@ onMounted(() => {
   });
   window.ipcRenderer.on("setAllReleaseMute", _event => {
     //全部解除静音
-    console.log("解除静音");
     mitter.emit("setAllMute", false);
     store.$state.allMuted = false;
   });
