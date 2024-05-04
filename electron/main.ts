@@ -264,6 +264,14 @@ function getMainWindowPopup(type?: "played"): any {
         },
       ],
     },
+    {
+      label: "全屏",
+      accelerator: "CmdOrCtrl+Space",
+      icon: path.join(__dirname, "../public/basic/048-monitor.png"),
+      click: () => {
+        win?.webContents.send("full-screen");
+      },
+    },
   ];
   let dev = [
     {
@@ -419,6 +427,9 @@ function createWindow() {
     globalShortcut.register("CmdOrCtrl+m", () => {
       win?.webContents.send("setAllMute");
     });
+    globalShortcut.register("CmdOrCtrl+o", () => {
+      toggleDev();
+    });
     globalShortcut.register("CmdOrCtrl+shift+m", () => {
       win?.webContents.send("setAllReleaseMute");
     });
@@ -446,6 +457,9 @@ function createWindow() {
     globalShortcut.register("CmdOrCtrl+Left", () => {
       win?.webContents.send("move-left");
     });
+    globalShortcut.register("CmdOrCtrl+Space", () => {
+      win?.webContents.send("full-screen");
+    });
   });
 
   // 当窗口失去焦点时注销快捷键
@@ -453,6 +467,7 @@ function createWindow() {
     globalShortcut.unregister("CmdOrCtrl+A");
     globalShortcut.unregister("CmdOrCtrl+H");
     globalShortcut.unregister("CmdOrCtrl+m");
+    globalShortcut.unregister("CmdOrCtrl+o");
     globalShortcut.unregister("CmdOrCtrl+shift+m");
     globalShortcut.unregister("CmdOrCtrl+p");
     globalShortcut.unregister("CmdOrCtrl+shift+p");
@@ -462,6 +477,7 @@ function createWindow() {
     globalShortcut.unregister("CmdOrCtrl+Down");
     globalShortcut.unregister("CmdOrCtrl+Right");
     globalShortcut.unregister("CmdOrCtrl+Left");
+    globalShortcut.unregister("CmdOrCtrl+Space");
   });
 }
 ipcMain.handle("viewSvg", async (event, data) => {

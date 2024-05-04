@@ -22,6 +22,7 @@ const disapear = () => {
   if (!isMove) {
     setTimeout(() => {
       active.value = false;
+      select.value = false;
       isMove = false;
     }, 3000);
   }
@@ -64,6 +65,7 @@ onMounted(() => {
     plugins: plugins,
     // fitVideoSize: "fixWidth",
     videoFillMode: "cover",
+    cssFullscreen: false,
     commonStyle: {
       playedColor: "green",
       sliderBtnStyle: {
@@ -74,7 +76,7 @@ onMounted(() => {
     // plugins: [Mp4Plugin],
   });
   window.ipcRenderer.on("scale-add", () => {
-    if (select.value) {
+    if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
         scale += 0.5;
@@ -94,7 +96,7 @@ onMounted(() => {
     }
   });
   window.ipcRenderer.on("scale-reduce", () => {
-    if (select.value) {
+    if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
         scale -= 0.5;
@@ -112,7 +114,7 @@ onMounted(() => {
     }
   });
   window.ipcRenderer.on("move-up", () => {
-    if (select.value) {
+    if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
         let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
@@ -125,7 +127,7 @@ onMounted(() => {
     }
   });
   window.ipcRenderer.on("move-down", () => {
-    if (select.value) {
+    if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
         let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
@@ -139,7 +141,7 @@ onMounted(() => {
   });
 
   window.ipcRenderer.on("move-left", () => {
-    if (select.value) {
+    if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
         let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
@@ -152,7 +154,7 @@ onMounted(() => {
     }
   });
   window.ipcRenderer.on("move-right", () => {
-    if (select.value) {
+    if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
         let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
@@ -161,6 +163,19 @@ onMounted(() => {
           moveXPercent = -maxPercent;
         }
         vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      }
+    }
+  });
+  window.ipcRenderer.on("full-screen", () => {
+    if (store.$state.currentWidget == id) {
+      try {
+        if (player?.cssfullscreen) {
+          player.exitCssFullscreen();
+        } else {
+          player?.getCssFullscreen();
+        }
+      } catch (e) {
+        console.log("full screen error", e);
       }
     }
   });
