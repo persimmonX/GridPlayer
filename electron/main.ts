@@ -145,14 +145,14 @@ function getMainWindowPopup(type?: "played"): any {
           icon: path.join(__dirname, "../public/basic/223-video.png"),
           submenu: [
             {
-              label: "暂停",
+              label: "暂停   Ctrl+Shift+P",
               icon: path.join(__dirname, "../public/basic/140-pause.png"),
               click: () => {
                 win?.webContents.send("setAllPause");
               },
             },
             {
-              label: "播放",
+              label: "播放   Ctrl+P",
               icon: path.join(__dirname, "../public/basic/145-play.png"),
               click: () => {
                 win?.webContents.send("setAllStart");
@@ -165,14 +165,14 @@ function getMainWindowPopup(type?: "played"): any {
           icon: path.join(__dirname, "../public/basic/130-note.png"),
           submenu: [
             {
-              label: "静音",
+              label: "静音   Ctrl+M",
               icon: path.join(__dirname, "../public/basic/226-mute.png"),
               click: () => {
                 win?.webContents.send("setAllMute");
               },
             },
             {
-              label: "解除静音",
+              label: "解除静音 Ctrl+Shift+M",
               icon: path.join(__dirname, "../public/basic/227-low volume.png"),
               click: () => {
                 win?.webContents.send("setAllReleaseMute");
@@ -356,6 +356,18 @@ function createWindow() {
         win?.setFullScreen(true);
       }
     });
+    globalShortcut.register("ctrl+m", () => {
+      win?.webContents.send("setAllMute");
+    });
+    globalShortcut.register("ctrl+shift+m", () => {
+      win?.webContents.send("setAllReleaseMute");
+    });
+    globalShortcut.register("Ctrl+P", () => {
+      win?.webContents.send("setAllStart");
+    });
+    globalShortcut.register("Ctrl+shift+P", () => {
+      win?.webContents.send("setAllPause");
+    });
   });
 
   // 当窗口失去焦点时注销快捷键
@@ -363,6 +375,10 @@ function createWindow() {
     globalShortcut.unregister("ctrl+A");
     globalShortcut.unregister("ctrl+O");
     globalShortcut.unregister("ctrl+H");
+    globalShortcut.unregister("ctrl+m");
+    globalShortcut.unregister("ctrl+shift+m");
+    globalShortcut.unregister("ctrl+p");
+    globalShortcut.unregister("ctrl+shift+p");
   });
 }
 ipcMain.handle("viewSvg", async (event, data) => {

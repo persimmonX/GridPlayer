@@ -24,6 +24,7 @@
     "fluent-ffmpeg": "^2.1.2",
     "gridstack": "^10.1.2",
     "http-proxy-middleware": "^3.0.0",
+    "mitt": "^3.0.1",
     "pinia": "^2.1.7",
     "sass": "^1.75.0",
     "sharp": "^0.33.3",

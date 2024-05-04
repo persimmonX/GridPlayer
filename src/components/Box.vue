@@ -4,6 +4,7 @@ import { useStore } from "../store";
 import Player from "xgplayer";
 import HlsJsPlugin from "xgplayer-hls.js";
 import FlvJsPlugin from "xgplayer-flv.js";
+import mitter from "@/store/bus";
 const id: string | undefined = inject("id");
 const url: string | undefined = inject("url");
 const name: string | undefined = inject("name");
@@ -47,8 +48,8 @@ onMounted(() => {
   player = new Player({
     el: playerDom.value,
     url: url,
-    autoplay: true,
-    autoplayMuted: true,
+    autoplay: !store.allPause,
+    autoplayMuted: store.allMuted,
     lang: "zh-cn",
     width: "100%",
     height: "100%",
@@ -67,6 +68,22 @@ onMounted(() => {
     isLive: false,
     // plugins: [Mp4Plugin],
   });
+  window.ipcRenderer.on("", () => {});
+});
+mitter.on("setAllMute", (value: boolean) => {
+  if (player) {
+    player.muted = value;
+  }
+});
+mitter.on("setAllStart", (value: boolean) => {
+  if (player && value) {
+    player.play();
+  }
+});
+mitter.on("setAllPause", (value: boolean) => {
+  if (player && value) {
+    player.pause();
+  }
 });
 watch(
   () => store.$state.currentWidget,
@@ -82,6 +99,9 @@ watch(
     if (player) {
       player.muted = value;
     }
+  },
+  {
+    immediate: true,
   }
 );
 watch(
@@ -90,6 +110,9 @@ watch(
     if (player) {
       value ? player.pause() : player.play();
     }
+  },
+  {
+    immediate: true,
   }
 );
 </script>
@@ -121,6 +144,7 @@ watch(
   box-sizing: border-box;
   border: 5px solid rgba(173, 170, 170, 0.5);
   z-index: 1000;
+  color: rgb(219, 215, 215);
   pointer-events: none;
 }
 .title {
