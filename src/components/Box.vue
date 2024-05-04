@@ -26,6 +26,7 @@ const selectThis = () => {
   select.value = !select.value;
   store.$state.currentWidget = id;
 };
+let player: null | Player = null;
 onMounted(() => {
   box.value.onmousemove = () => {
     //激活5
@@ -43,7 +44,7 @@ onMounted(() => {
   } else if (url?.endsWith(".flv")) {
     plugins.push(FlvJsPlugin);
   }
-  new Player({
+  player = new Player({
     el: playerDom.value,
     url: url,
     autoplay: true,
@@ -72,6 +73,22 @@ watch(
   value => {
     if (value != id) {
       select.value = false;
+    }
+  }
+);
+watch(
+  () => store.$state.allMuted,
+  (value: boolean) => {
+    if (player) {
+      player.muted = value;
+    }
+  }
+);
+watch(
+  () => store.$state.allPause,
+  (value: boolean) => {
+    if (player) {
+      value ? player.pause() : player.play();
     }
   }
 );

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, MenuItemConstructorOptions } from "electron";
+import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, MenuItemConstructorOptions, MenuItem } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -32,6 +32,7 @@ let win: BrowserWindow | null;
 let linkPopup: null | BrowserWindow = null;
 let scriptPopup: null | BrowserWindow = null;
 let devToolIsOpen = false;
+let contextMenu: Menu | null = null;
 const popups: BrowserWindow[] = [];
 let template: Array<MenuItemConstructorOptions> = [
   {
@@ -47,68 +48,9 @@ let template: Array<MenuItemConstructorOptions> = [
 
 const menus = Menu.buildFromTemplate(template);
 // Menu.setApplicationMenu(null);
-function addFile() {
-  dialog
-    .showOpenDialog({
-      title: "选择文件",
-      properties: ["openFile", "multiSelections"],
-    })
-    .then(result => {
-      if (!result.canceled) {
-        for (let path of result.filePaths) {
-          addPlayPath(path).then(({ url, id, name }: any) => {
-            win?.webContents.send("addWidget", { id, path, name, url });
-          });
-        }
-      }
-    })
-    .catch(err => {
-      console.log(err);
-    });
-}
-function createPopupWindow(hashPath: string, title?: string, width = 500, height = 400) {
-  const popup = new BrowserWindow({
-    width: width,
-    height: height,
-    title: title,
-    show: false,
-    // resizable: false,
-    icon: path.join(__dirname, "../public/main/png/16x16.png"),
-    backgroundColor: "red",
-    webPreferences: {
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.mjs"),
-    },
-  });
-  popup.once("ready-to-show", () => {
-    popup.show();
-  });
-  if (VITE_DEV_SERVER_URL) {
-    popup.loadURL(VITE_DEV_SERVER_URL + `/#/${hashPath}`);
-  } else {
-    popup.loadFile(path.join(RENDERER_DIST, `index.html/#/${hashPath}`));
-  }
-  popups.push(popup);
-  return popup;
-}
-function toggleDev() {
-  if (devToolIsOpen) {
-    win?.webContents.closeDevTools();
-  } else {
-    win?.webContents.openDevTools();
-  }
-}
-function createWindow() {
-  win = new BrowserWindow({
-    title: "GridPlayer",
-    icon: path.join(__dirname, "../public/main/png/16x16.png"),
-    webPreferences: {
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.mjs"),
-    },
-  });
 
-  let contextMenu = Menu.buildFromTemplate([
+function getMainWindowPopup(type?: "played"): any {
+  let base = [
     {
       label: "添加",
       icon: path.join(__dirname, "../public/basic/003-add.png"),
@@ -175,22 +117,93 @@ function createWindow() {
       ],
     },
     {
-      label: "查看SVG",
-      icon: path.join(__dirname, "../public/basic/107-image.png"),
-      click: () => {
-        // 播放在线视频
-        createPopupWindow("svg", "svg");
-        //获取/public/basic/*.svg
-
-      },
-    },
-    {
       label: "删除窗口",
       icon: path.join(__dirname, "../public/basic/031-cancel.png"),
       click: event => {
         win?.webContents.send("removeWidget");
       },
     },
+    {
+      label: "重载程序   CTRL+R",
+      icon: path.join(__dirname, "../public/basic/188-recycle.png"),
+      role: "reload",
+      click: () => {
+        // 播放在线视频
+      },
+    },
+  ];
+  let split = {
+    type: "separator",
+  };
+  let played = [
+    {
+      label: "全部",
+      icon: path.join(__dirname, "../public/basic/111-layers.png"),
+      submenu: [
+        {
+          label: "视频",
+          icon: path.join(__dirname, "../public/basic/223-video.png"),
+          submenu: [
+            {
+              label: "暂停",
+              icon: path.join(__dirname, "../public/basic/140-pause.png"),
+              click: () => {
+                win?.webContents.send("setAllPause");
+              },
+            },
+            {
+              label: "播放",
+              icon: path.join(__dirname, "../public/basic/145-play.png"),
+              click: () => {
+                win?.webContents.send("setAllStart");
+              },
+            },
+          ],
+        },
+        {
+          label: "声音",
+          icon: path.join(__dirname, "../public/basic/130-note.png"),
+          submenu: [
+            {
+              label: "静音",
+              icon: path.join(__dirname, "../public/basic/226-mute.png"),
+              click: () => {
+                win?.webContents.send("setAllMute");
+              },
+            },
+            {
+              label: "解除静音",
+              icon: path.join(__dirname, "../public/basic/227-low volume.png"),
+              click: () => {
+                win?.webContents.send("setAllReleaseMute");
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      label: "布局",
+      icon: path.join(__dirname, "../public/basic/099-squares.png"),
+      submenu: [
+        {
+          label: "横向填充",
+          icon: path.join(__dirname, "../public/basic/034-center align.png"),
+          click: () => {
+            win?.webContents.send("layout-flex", "horizontal");
+          },
+        },
+        {
+          label: "纵向填充",
+          icon: path.join(__dirname, "../public/basic/033-center align.png"),
+          click: () => {
+            win?.webContents.send("layout-flex", "vertical");
+          },
+        },
+      ],
+    },
+  ];
+  let dev = [
     {
       label: "打开控制台    Ctrl+O",
       icon: path.join(__dirname, "../public/basic/128-monitor.png"),
@@ -200,14 +213,16 @@ function createWindow() {
       },
     },
     {
-      label: "重载窗口   CTRL+R",
-      icon: path.join(__dirname, "../public/basic/188-recycle.png"),
-      role: "reload",
+      label: "查看SVG",
+      icon: path.join(__dirname, "../public/basic/107-image.png"),
       click: () => {
         // 播放在线视频
+        createPopupWindow("svg", "svg");
+        //获取/public/basic/*.svg
       },
     },
-
+  ];
+  let setting = [
     {
       label: "关于",
       icon: path.join(__dirname, "../public/basic/132-note.png"),
@@ -216,9 +231,90 @@ function createWindow() {
         createPopupWindow("about", "关于");
       },
     },
-  ]);
+  ];
+  if (type == "played") {
+    //@ts-ignore
+    return base.concat(split, ...played, split, ...dev, split, ...setting);
+  } else {
+    //@ts-ignore
+    return base.concat(split, ...dev, split, ...setting);
+  }
+}
+function addFile() {
+  dialog
+    .showOpenDialog({
+      title: "选择文件",
+      properties: ["openFile", "multiSelections"],
+    })
+    .then(result => {
+      if (!result.canceled) {
+        for (let path of result.filePaths) {
+          addPlayPath(path).then(({ url, id, name }: any) => {
+            win?.webContents.send("addWidget", { id, path, name, url });
+          });
+        }
+      }
+    })
+    .catch(err => {
+      console.log(err);
+    });
+}
+function createPopupWindow(hashPath: string, title?: string, width = 500, height = 400) {
+  const popup = new BrowserWindow({
+    width: width,
+    height: height,
+    title: title,
+    show: false,
+    // resizable: false,
+    icon: path.join(__dirname, "../public/main/png/16x16.png"),
+    backgroundColor: "red",
+    webPreferences: {
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.mjs"),
+    },
+  });
+  popup.once("ready-to-show", () => {
+    popup.show();
+  });
+  if (VITE_DEV_SERVER_URL) {
+    popup.loadURL(VITE_DEV_SERVER_URL + `/#/${hashPath}`);
+  } else {
+    popup.loadFile(path.join(RENDERER_DIST, `index.html/#/${hashPath}`));
+  }
+  popups.push(popup);
+  return popup;
+}
+function toggleDev() {
+  if (devToolIsOpen) {
+    win?.webContents.closeDevTools();
+  } else {
+    win?.webContents.openDevTools();
+  }
+}
+function createWindow() {
+  win = new BrowserWindow({
+    title: "GridPlayer",
+    icon: path.join(__dirname, "../public/main/png/16x16.png"),
+    webPreferences: {
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.mjs"),
+    },
+  });
+
+  contextMenu = Menu.buildFromTemplate(getMainWindowPopup());
   win.webContents.on("context-menu", (e, params) => {
-    contextMenu.popup();
+    //判断是否在播放 添加全部=>操作指令
+    win?.webContents.send("getAllWidgetCount");
+    ipcMain.once("get-widget-count", (_e, count) => {
+      if (count > 0) {
+        //弹出菜单中需要添加新的
+        contextMenu = Menu.buildFromTemplate(getMainWindowPopup("played"));
+      } else {
+        contextMenu = Menu.buildFromTemplate(getMainWindowPopup());
+      }
+      contextMenu?.popup();
+    });
+    //检查当前有多少个窗口
   });
   win.webContents.on("devtools-opened", () => {
     console.log("开发者工具已打开");
@@ -253,7 +349,7 @@ function createWindow() {
     globalShortcut.register("ctrl+O", () => {
       toggleDev();
     });
-    globalShortcut.register("ctrl+f", () => {
+    globalShortcut.register("ctrl+H", () => {
       if (win?.isFullScreen()) {
         win?.setFullScreen(false);
       } else {
@@ -266,7 +362,7 @@ function createWindow() {
   win.on("blur", () => {
     globalShortcut.unregister("ctrl+A");
     globalShortcut.unregister("ctrl+O");
-    globalShortcut.unregister("ctrl+f");
+    globalShortcut.unregister("ctrl+H");
   });
 }
 ipcMain.handle("viewSvg", async (event, data) => {
@@ -408,7 +504,14 @@ ipcMain.handle("import-script", _e => {
       });
   });
 });
-
+// ipcMain.on("get-widget-count", (_e, count) => {
+//   if (count > 0) {
+//     //弹出菜单中需要添加新的
+//     contextMenu = Menu.buildFromTemplate(getMainWindowPopup("played"));
+//   } else {
+//     contextMenu = Menu.buildFromTemplate(getMainWindowPopup());
+//   }
+// });
 //changeToPNG
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
