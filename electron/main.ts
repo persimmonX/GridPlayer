@@ -3,14 +3,19 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { addPlayPath, addPlayLink } from "./videoServer";
-import { readDirRecursive } from "../util";
+import { readDirRecursive, isNetworkUrl } from "../util";
+import playHistory from "./store/PlayHistory";
+import scriptList from "./store/ScriptList";
 
 import fs from "fs";
+import { GridStackWidget } from "gridstack";
+import playList from "./store/PlayList";
 
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const vm = require("vm");
+
 // The built directory structure
 //
 // ├─┬─┬ dist
@@ -48,9 +53,107 @@ let template: Array<MenuItemConstructorOptions> = [
 
 const menus = Menu.buildFromTemplate(template);
 // Menu.setApplicationMenu(null);
+function findObjectsWithAccelerator(arr) {
+  let result: any = [];
+  function traverse(current) {
+    if (Array.isArray(current)) {
+      current.forEach(traverse); // 如果是数组，递归遍历每一项
+    } else if (typeof current === "object" && current !== null) {
+      if ("accelerator" in current) {
+        // 如果对象包含accelerator属性，将其添加到结果数组中
+        result.push(current);
+      }
+      if ("submenu" in current) {
+        // 如果对象包含accelerator属性，将其添加到结果数组中
+        traverse(current.submenu);
+      }
+    }
+  }
 
-function getMainWindowPopup(type?: "played"): any {
-  let base = [
+  traverse(arr); // 开始遍历传入的数组
+  return result;
+}
+function doSelectPlayByProtocol(urlOrPath, gridStackOption?: GridStackWidget, xgOption?: any) {
+  playHistory.add(urlOrPath);
+  if (isNetworkUrl(urlOrPath)) {
+    return addPlayLink(urlOrPath).then(({ url, id, name }: any) => {
+      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption });
+    });
+  } else {
+    return addPlayPath(urlOrPath).then(({ url, id, name }: any) => {
+      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption });
+    });
+  }
+}
+function playJSONList(filePath: string) {
+  let str = fs.readFileSync(filePath, "utf-8");
+  let data = JSON.parse(str);
+  if (data && data.length > 0) {
+    data.forEach(d => {
+      doSelectPlayByProtocol(d.originPath, { x: d.x, y: d.y, w: d.w, h: d.h });
+    });
+  }
+}
+function getMainWindowPopup(type?: "played" | "all"): any {
+  let plist = playList.getAll();
+  //校验数据是否正常
+  let pmenu = plist
+    .filter(item => {
+      let exist = fs.existsSync(item);
+      if (exist) return true;
+      playList.remove(item);
+      return false;
+    })
+    .map(item => {
+      return {
+        label: item,
+        click: () => {
+          //doSelectPlayByProtocol(item);
+
+          playJSONList(item);
+        },
+      };
+    });
+  if (pmenu.length > 0) {
+    pmenu.push({
+      label: "清空播放记录",
+      click: () => {
+        playList.removeAll();
+      },
+    });
+  } else {
+    pmenu.push({
+      label: "(空)",
+      click: () => {},
+    });
+  }
+
+  let hlist = playHistory.getAll();
+  let hmenu = hlist.map(item => {
+    return {
+      label: item,
+      click: () => {
+        doSelectPlayByProtocol(item);
+      },
+    };
+  });
+  if (hmenu.length > 0) {
+    hmenu.push({
+      label: "清空播放记录",
+      click: () => {
+        playHistory.removeAll();
+      },
+    });
+  } else {
+    hmenu.push({
+      label: "(空)",
+      click: () => {},
+    });
+  }
+
+  playList;
+
+  let base: Array<MenuItemConstructorOptions> = [
     {
       label: "添加",
       icon: path.join(__dirname, "../public/basic/003-add.png"),
@@ -73,73 +176,142 @@ function getMainWindowPopup(type?: "played"): any {
         {
           label: "使用脚本",
           icon: path.join(__dirname, "../public/basic/179-document.png"),
-          accelerator: "CmdOrCtrl+X",
+          accelerator: "CmdOrCtrl+/",
           click: () => {
             // 播放在线视频
             scriptPopup = createPopupWindow("script", "脚本", 1200, 750);
             scriptPopup.webContents.on("context-menu", (e, params) => {
-              const recentScriptFiles = path.resolve(__dirname, "/history/recentScriptFiles.txt");
-              if (fs.existsSync(recentScriptFiles)) {
-                let text = fs.readFileSync(recentScriptFiles, "utf-8");
-                let template: any = [];
-                if (!text) {
-                  template.push({
-                    label: "暂无保存记录",
-                  });
-                } else {
-                  const history = text
-                    .split("\n")
-                    .filter(item => Boolean(item))
-                    .map(item => {
-                      return item.split("|");
-                    });
-                  template = history.map(item => {
-                    return {
-                      label: item[1],
-                      click: () => {
-                        const script = fs.readFileSync(item[1], "utf-8");
-                        scriptPopup?.webContents.send("history-script", script);
-                      },
-                    };
-                  });
-                  template.push({
-                    label: "清空播放历史",
-                    click: () => {
-                      console.log("clear recentScriptFiles");
-                      fs.truncate(recentScriptFiles, 0, () => {});
-                    },
-                  });
-                }
-
-                let historySavedMenu = Menu.buildFromTemplate(template);
-                historySavedMenu.popup();
+              let allScript = scriptList.getAll();
+              let template = allScript.map(item => {
+                return {
+                  label: item,
+                  click: () => {
+                    //加载脚本
+                    const script = fs.readFileSync(item, "utf-8");
+                    scriptPopup?.webContents.send("history-script", script);
+                  },
+                };
+              });
+              if (template && template.length) {
+                template.push({
+                  label: "清空脚本记录",
+                  click: () => {
+                    //清空脚本记录
+                  },
+                });
+              } else {
+                template = [
+                  {
+                    label: "暂无记录",
+                    click: () => {},
+                  },
+                ];
               }
+              let historySavedMenu = Menu.buildFromTemplate(template);
+              historySavedMenu.popup();
             });
           },
         },
+        {
+          label: "最近播放",
+          icon: path.join(__dirname, "../public/basic/131-notepad.png"),
+          submenu: hmenu,
+        },
       ],
     },
+
+    {
+      label: "打开播放列表",
+      accelerator: "CmdOrCtrl+O",
+      icon: path.join(__dirname, "../public/basic/092-folder.png"),
+      click: () => {
+        if (win) {
+          const options: { properties?: ("openFile" | "openDirectory")[]; title: string; filters: any } = {
+            title: "选择文件",
+            properties: ["openFile"], // 只允许选择文件
+            filters: [
+              { name: "Text Files", extensions: ["json"] }, // 限制文件类型为.txt
+            ],
+          };
+          dialog.showOpenDialog(win, options).then(result => {
+            let filePath = result.filePaths[0];
+            playJSONList(filePath);
+          });
+        }
+      },
+    },
+    {
+      label: "保存播放列表",
+      accelerator: "CmdOrCtrl+S",
+      icon: path.join(__dirname, "../public/basic/131-notepad.png"),
+      click: () => {
+        dialog
+          .showMessageBox({
+            type: "question",
+            buttons: ["确定", "取消"],
+            title: "确认",
+            message: "是否确定保存当前播放列表？",
+            defaultId: 0, // 默认选中的按钮索引，0 对应 "确定"
+            cancelId: 1, // 取消按钮的索引，1 对应 "取消"
+          })
+          .then(response => {
+            // response 是一个对象，包含 buttonIndex 和 checkedButtons 属性
+            if (response.response === 0) {
+              // 用户点击了 "确定"
+              // 执行你的操作...
+              win?.webContents.send("save-play-list");
+              ipcMain.once("render-save-play-list", (_e, list) => {
+                console.log("save-play-list---", list);
+                dialog
+                  .showSaveDialog({
+                    title: "保存播放列表",
+                    filters: [
+                      { name: "Text Files", extensions: ["json"] },
+                      { name: "All Files", extensions: ["*"] },
+                    ],
+                  })
+                  .then(result => {
+                    if (!result.canceled) {
+                      let filePath = result.filePath;
+                      fs.writeFileSync(filePath, JSON.stringify(list));
+                      playList.add(filePath);
+                    }
+                  })
+                  .catch(err => {
+                    console.error(err);
+                  });
+              });
+            } else {
+              // 用户点击了 "取消" 或关闭了对话框
+              console.log("用户点击了取消或关闭了对话框");
+            }
+          })
+          .catch(err => {
+            console.error("显示对话框时出错:", err);
+          });
+      },
+    },
+    {
+      label: "最近播放列表",
+      icon: path.join(__dirname, "../public/basic/046-compass.png"),
+      submenu: pmenu,
+    },
+  ];
+  let split: MenuItemConstructorOptions = {
+    type: "separator",
+  };
+  let played: Array<MenuItemConstructorOptions> = [
     {
       label: "删除窗口",
+      accelerator: "CmdOrCtrl+X",
       icon: path.join(__dirname, "../public/basic/031-cancel.png"),
       click: event => {
         win?.webContents.send("removeWidget");
       },
     },
     {
-      label: "重载程序",
-      accelerator: "CmdOrCtrl+R",
-      icon: path.join(__dirname, "../public/basic/188-recycle.png"),
-      role: "reload",
-      click: () => {
-        // 播放在线视频
-      },
+      type: "separator",
     },
-  ];
-  let split = {
-    type: "separator",
-  };
-  let played = [
     {
       label: "全部",
       icon: path.join(__dirname, "../public/basic/111-layers.png"),
@@ -265,18 +437,33 @@ function getMainWindowPopup(type?: "played"): any {
       ],
     },
     {
-      label: "全屏",
-      accelerator: "CmdOrCtrl+Space",
+      label: "控制",
       icon: path.join(__dirname, "../public/basic/048-monitor.png"),
-      click: () => {
-        win?.webContents.send("full-screen");
-      },
+      submenu: [
+        {
+          label: "全屏",
+          accelerator: "CmdOrCtrl+Space",
+          icon: path.join(__dirname, "../public/basic/048-monitor.png"),
+          click: () => {
+            win?.webContents.send("full-screen");
+          },
+        },
+        {
+          label: "Next",
+          accelerator: "CmdOrCtrl+Tab",
+          icon: path.join(__dirname, "../public/basic/048-monitor.png"),
+          click: () => {
+            //选择下一个
+            win?.webContents.send("select-next");
+          },
+        },
+      ],
     },
   ];
-  let dev = [
+  let dev: Array<MenuItemConstructorOptions> = [
     {
       label: "打开控制台",
-      accelerator: "CmdOrCtrl+O",
+      accelerator: "CmdOrCtrl+F12",
       icon: path.join(__dirname, "../public/basic/128-monitor.png"),
       click: () => {
         // 播放在线视频
@@ -292,8 +479,17 @@ function getMainWindowPopup(type?: "played"): any {
         //获取/public/basic/*.svg
       },
     },
+    {
+      label: "重载程序",
+      accelerator: "CmdOrCtrl+R",
+      icon: path.join(__dirname, "../public/basic/188-recycle.png"),
+      role: "reload",
+      click: () => {
+        // 播放在线视频
+      },
+    },
   ];
-  let setting = [
+  let setting: Array<MenuItemConstructorOptions> = [
     {
       label: "关于",
       icon: path.join(__dirname, "../public/basic/132-note.png"),
@@ -304,10 +500,10 @@ function getMainWindowPopup(type?: "played"): any {
     },
   ];
   if (type == "played") {
-    //@ts-ignore
+    return base.concat(split, ...played, split, ...dev, split, ...setting);
+  } else if (type == "all") {
     return base.concat(split, ...played, split, ...dev, split, ...setting);
   } else {
-    //@ts-ignore
     return base.concat(split, ...dev, split, ...setting);
   }
 }
@@ -320,9 +516,7 @@ function addFile() {
     .then(result => {
       if (!result.canceled) {
         for (let path of result.filePaths) {
-          addPlayPath(path).then(({ url, id, name }: any) => {
-            win?.webContents.send("addWidget", { id, path, name, url });
-          });
+          doSelectPlayByProtocol(path);
         }
       }
     })
@@ -416,68 +610,19 @@ function createWindow() {
 
   // 当窗口获得焦点时注册快捷键
   win.on("focus", () => {
-    globalShortcut.register("CmdOrCtrl+A", addFile);
-    globalShortcut.register("CmdOrCtrl+H", () => {
-      if (win?.isFullScreen()) {
-        win?.setFullScreen(false);
+    let menus = findObjectsWithAccelerator(getMainWindowPopup("all"));
+    menus.forEach(menu => {
+      if (menu.accelerator && typeof menu.click == "function") {
+        globalShortcut.register(menu.accelerator, menu.click);
       } else {
-        win?.setFullScreen(true);
+        console.log(`${menu.label} register shortcut fail command:${menu.accelerator}`);
       }
-    });
-    globalShortcut.register("CmdOrCtrl+m", () => {
-      win?.webContents.send("setAllMute");
-    });
-    globalShortcut.register("CmdOrCtrl+o", () => {
-      toggleDev();
-    });
-    globalShortcut.register("CmdOrCtrl+shift+m", () => {
-      win?.webContents.send("setAllReleaseMute");
-    });
-    globalShortcut.register("CmdOrCtrl+P", () => {
-      win?.webContents.send("setAllStart");
-    });
-    globalShortcut.register("CmdOrCtrl+shift+P", () => {
-      win?.webContents.send("setAllPause");
-    });
-    globalShortcut.register("CmdOrCtrl+numadd", () => {
-      win?.webContents.send("scale-add");
-    });
-    globalShortcut.register("CmdOrCtrl+numsub", () => {
-      win?.webContents.send("scale-reduce");
-    });
-    globalShortcut.register("CmdOrCtrl+Up", () => {
-      win?.webContents.send("move-up");
-    });
-    globalShortcut.register("CmdOrCtrl+Down", () => {
-      win?.webContents.send("move-down");
-    });
-    globalShortcut.register("CmdOrCtrl+Right", () => {
-      win?.webContents.send("move-right");
-    });
-    globalShortcut.register("CmdOrCtrl+Left", () => {
-      win?.webContents.send("move-left");
-    });
-    globalShortcut.register("CmdOrCtrl+Space", () => {
-      win?.webContents.send("full-screen");
     });
   });
 
   // 当窗口失去焦点时注销快捷键
   win.on("blur", () => {
-    globalShortcut.unregister("CmdOrCtrl+A");
-    globalShortcut.unregister("CmdOrCtrl+H");
-    globalShortcut.unregister("CmdOrCtrl+m");
-    globalShortcut.unregister("CmdOrCtrl+o");
-    globalShortcut.unregister("CmdOrCtrl+shift+m");
-    globalShortcut.unregister("CmdOrCtrl+p");
-    globalShortcut.unregister("CmdOrCtrl+shift+p");
-    globalShortcut.unregister("CmdOrCtrl+numadd");
-    globalShortcut.unregister("CmdOrCtrl+numsub");
-    globalShortcut.unregister("CmdOrCtrl+Up");
-    globalShortcut.unregister("CmdOrCtrl+Down");
-    globalShortcut.unregister("CmdOrCtrl+Right");
-    globalShortcut.unregister("CmdOrCtrl+Left");
-    globalShortcut.unregister("CmdOrCtrl+Space");
+    globalShortcut.unregisterAll();
   });
 }
 ipcMain.handle("viewSvg", async (event, data) => {
@@ -513,9 +658,7 @@ ipcMain.handle("changeToPNG", async (event, url) => {
 });
 ipcMain.handle("dropList", (e, list) => {
   for (let path of list) {
-    addPlayPath(path).then(({ url, id, name }: any) => {
-      win?.webContents.send("addWidget", { id, path, name, url });
-    });
+    doSelectPlayByProtocol(path);
   }
 });
 ipcMain.on("open-input-large", () => {
@@ -529,8 +672,7 @@ ipcMain.on("cancel-link", () => {
 });
 ipcMain.on("confirm-link", (e, links) => {
   for (let link of links) {
-    addPlayLink(link).then(({ url, id, name }: any) => {
-      win?.webContents.send("addWidget", { id, name, url });
+    doSelectPlayByProtocol(link).then(() => {
       linkPopup?.close();
     });
   }
@@ -549,8 +691,7 @@ ipcMain.handle("confirm-script", (_e, text) => {
 });
 ipcMain.on("play-script", (_e, links) => {
   for (let link of links) {
-    addPlayLink(link).then(({ url, id, name }: any) => {
-      win?.webContents.send("addWidget", { id, name, url });
+    doSelectPlayByProtocol(link).then(() => {
       scriptPopup?.close();
     });
   }
@@ -572,15 +713,7 @@ ipcMain.on("save-script", (_e, text) => {
         // 发送文件路径给渲染进程
         let filePath = result.filePath;
         fs.writeFileSync(filePath, text);
-        const recentScriptFiles = path.resolve(__dirname, "/history/recentScriptFiles.txt");
-        const data = `${Date.now()}|${filePath}\n`;
-        if (!fs.existsSync(filePath)) {
-          fs.mkdirSync(path.resolve(__dirname, "/history"));
-        }
-        fs.appendFile(recentScriptFiles, data, { encoding: "utf8", flag: "a" }, err => {
-          if (err) throw err;
-          console.log("ipcMain.on - recentScriptFiles:", recentScriptFiles);
-        });
+        scriptList.add(filePath);
       }
     })
     .catch(err => {

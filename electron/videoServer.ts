@@ -109,7 +109,6 @@ const addPlayPath = (filePath: string) => {
       let id = CryptoJS.MD5(filePath).toString();
       let url = `http://127.0.0.1:${port}/video-stream/${id}`;
       let fileName = path.basename(filePath);
-      console.log("🐤 - addWidget - url:", url);
       // 如果你还想要获取文件扩展名，可以使用path.extname()
       let fileExtension = path.extname(filePath);
       let fileType = fileExtension.slice(1);

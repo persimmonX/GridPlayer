@@ -55,4 +55,10 @@ function separateDomainAndPath(url) {
     path,
   };
 }
-export { readDirRecursive, separateDomainAndPath };
+
+function isNetworkUrl(url) {
+  // 使用正则表达式匹配常见的网络协议
+  const networkProtocols = /^(https?:|ftp:|file:)/i;
+  return networkProtocols.test(url);
+}
+export { readDirRecursive, separateDomainAndPath, isNetworkUrl };

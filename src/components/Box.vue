@@ -5,6 +5,7 @@ import Player from "xgplayer";
 import HlsJsPlugin from "xgplayer-hls.js";
 import FlvJsPlugin from "xgplayer-flv.js";
 import mitter from "@/store/bus";
+import debounce from "debounce";
 const id: string | undefined = inject("id");
 const url: string | undefined = inject("url");
 const name: string | undefined = inject("name");
@@ -13,19 +14,17 @@ const box = ref();
 const active = ref(false);
 const select = ref(false);
 const playerDom = ref();
-let isMove = false;
 let plugins: any = [];
 let scale = 1;
 let moveXPercent = 0;
 let moveYPercent = 0;
-const disapear = () => {
-  if (!isMove) {
-    setTimeout(() => {
-      active.value = false;
-      select.value = false;
-      isMove = false;
-    }, 3000);
-  }
+
+const disappear = debounce(() => {
+  active.value = false;
+}, 3000);
+const showAndAutoHide = () => {
+  active.value = true;
+  disappear();
 };
 const selectThis = () => {
   select.value = !select.value;
@@ -35,11 +34,9 @@ let player: null | Player = null;
 onMounted(() => {
   box.value.onmousemove = () => {
     //激活5
-    active.value = true;
     select.value = true;
+    showAndAutoHide();
     store.$state.currentWidget = id;
-    disapear();
-    isMove = true;
   };
   box.value.onmouseleave = () => {
     active.value = false;
@@ -59,11 +56,11 @@ onMounted(() => {
     width: "100%",
     height: "100%",
     mode: "cors",
+    // startTime: 30,
     loading: false,
     loop: true,
     closeVideoClick: true,
     plugins: plugins,
-    // fitVideoSize: "fixWidth",
     videoFillMode: "cover",
     cssFullscreen: false,
     commonStyle: {
@@ -75,7 +72,7 @@ onMounted(() => {
     isLive: false,
     // plugins: [Mp4Plugin],
   });
-  window.ipcRenderer.on("scale-add", () => {
+  mitter.on("scale-add", () => {
     if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
@@ -92,10 +89,11 @@ onMounted(() => {
           moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
         }
         vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+        showAndAutoHide();
       }
     }
   });
-  window.ipcRenderer.on("scale-reduce", () => {
+  mitter.on("scale-reduce", () => {
     if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
@@ -110,10 +108,11 @@ onMounted(() => {
           moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
         }
         vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+        showAndAutoHide();
       }
     }
   });
-  window.ipcRenderer.on("move-up", () => {
+  mitter.on("move-up", () => {
     if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
@@ -123,10 +122,11 @@ onMounted(() => {
           moveYPercent = maxPercent;
         }
         vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+        showAndAutoHide();
       }
     }
   });
-  window.ipcRenderer.on("move-down", () => {
+  mitter.on("move-down", () => {
     if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
@@ -136,11 +136,12 @@ onMounted(() => {
           moveYPercent = -maxPercent;
         }
         vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+        showAndAutoHide();
       }
     }
   });
 
-  window.ipcRenderer.on("move-left", () => {
+  mitter.on("move-left", () => {
     if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
@@ -150,10 +151,11 @@ onMounted(() => {
           moveXPercent = maxPercent;
         }
         vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+        showAndAutoHide();
       }
     }
   });
-  window.ipcRenderer.on("move-right", () => {
+  mitter.on("move-right", () => {
     if (store.$state.currentWidget == id) {
       let vDom = playerDom.value?.querySelector("video");
       if (vDom) {
@@ -163,10 +165,11 @@ onMounted(() => {
           moveXPercent = -maxPercent;
         }
         vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+        showAndAutoHide();
       }
     }
   });
-  window.ipcRenderer.on("full-screen", () => {
+  mitter.on("full-screen", () => {
     if (store.$state.currentWidget == id) {
       try {
         if (player?.cssfullscreen) {
@@ -193,6 +196,18 @@ mitter.on("setAllStart", (value: boolean) => {
 mitter.on("setAllPause", (value: boolean) => {
   if (player && value) {
     player.pause();
+  }
+});
+mitter.on("duration-active", (activeId: string) => {
+  if (activeId == id) {
+    select.value = true;
+  }
+});
+watch(select, value => {
+  if (value) {
+    showAndAutoHide();
+  } else {
+    active.value = value;
   }
 });
 watch(
@@ -229,7 +244,7 @@ watch(
 <template>
   <div class="box" @click="selectThis" ref="box">
     <div class="" ref="playerDom"></div>
-    <div v-if="select || active" class="activeBox">
+    <div v-if="active" class="activeBox">
       <div class="title">{{ name }}</div>
     </div>
   </div>
