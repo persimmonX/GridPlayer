@@ -9,6 +9,7 @@ import debounce from "debounce";
 const id: string | undefined = inject("id");
 const url: string | undefined = inject("url");
 const name: string | undefined = inject("name");
+const xgOption: { currentTime: number } | undefined = inject("xgOption");
 const store = useStore();
 const box = ref();
 const active = ref(false);
@@ -47,6 +48,7 @@ onMounted(() => {
   } else if (url?.endsWith(".flv")) {
     plugins.push(FlvJsPlugin);
   }
+  console.log("xgOption", xgOption);
   player = new Player({
     el: playerDom.value,
     url: url,
@@ -56,7 +58,7 @@ onMounted(() => {
     width: "100%",
     height: "100%",
     mode: "cors",
-    // startTime: 30,
+    startTime: xgOption?.currentTime,
     loading: false,
     loop: true,
     closeVideoClick: true,
@@ -71,6 +73,12 @@ onMounted(() => {
     },
     isLive: false,
     // plugins: [Mp4Plugin],
+  });
+  mitter.on("get-xg-option", callback => {
+    callback({
+      id,
+      currentTime: player?.currentTime,
+    });
   });
   mitter.on("scale-add", () => {
     if (store.$state.currentWidget == id) {

@@ -90,7 +90,7 @@ function playJSONList(filePath: string) {
   let data = JSON.parse(str);
   if (data && data.length > 0) {
     data.forEach(d => {
-      doSelectPlayByProtocol(d.originPath, { x: d.x, y: d.y, w: d.w, h: d.h });
+      doSelectPlayByProtocol(d.originPath, { x: d.gridStackOption.x, y: d.gridStackOption.y, w: d.gridStackOption.w, h: d.gridStackOption.h }, { currentTime: d.xgOption.currentTime });
     });
   }
 }
@@ -230,12 +230,14 @@ function getMainWindowPopup(type?: "played" | "all"): any {
             title: "选择文件",
             properties: ["openFile"], // 只允许选择文件
             filters: [
-              { name: "Text Files", extensions: ["json"] }, // 限制文件类型为.txt
+              { name: "Text Files", extensions: ["json"] }, // 限制文件类型为.json
             ],
           };
           dialog.showOpenDialog(win, options).then(result => {
-            let filePath = result.filePaths[0];
-            playJSONList(filePath);
+            if (!result.canceled) {
+              let filePath = result.filePaths[0];
+              playJSONList(filePath);
+            }
           });
         }
       },
@@ -261,7 +263,6 @@ function getMainWindowPopup(type?: "played" | "all"): any {
               // 执行你的操作...
               win?.webContents.send("save-play-list");
               ipcMain.once("render-save-play-list", (_e, list) => {
-                console.log("save-play-list---", list);
                 dialog
                   .showSaveDialog({
                     title: "保存播放列表",
@@ -512,6 +513,10 @@ function addFile() {
     .showOpenDialog({
       title: "选择文件",
       properties: ["openFile", "multiSelections"],
+      filters: [
+        { name: "Text Files", extensions: ["mp4", ".mkv", ".avi", ".hls", ".png", "jpeg", ".jpg", ".m3u8", ".flv"] },
+        { name: "All Files", extensions: ["*"] },
+      ],
     })
     .then(result => {
       if (!result.canceled) {
@@ -622,6 +627,9 @@ function createWindow() {
 
   // 当窗口失去焦点时注销快捷键
   win.on("blur", () => {
+    globalShortcut.unregisterAll();
+  });
+  win.on("minimize", () => {
     globalShortcut.unregisterAll();
   });
 }

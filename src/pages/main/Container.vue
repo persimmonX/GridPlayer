@@ -71,10 +71,11 @@ function layoutFill() {
   }
 }
 
-const addWidget = (_event: any, options: any) => {
-  const { id, name, url, originPath, gridStackOption } = options;
-  console.log("🐤 - addWidget - originPath:", originPath);
-
+const addWidget = (
+  _event: any,
+  options: { id: string; name: string; url: string; originPath: string; gridStackOption?: { x: number; y: number; h: number; w: number }; xgOption?: { currentTime: number } }
+) => {
+  const { id, name, url, originPath, gridStackOption, xgOption } = options;
   //检查id是否已存在
   let uniqueId = createUnique(id);
   originList.push({
@@ -82,18 +83,21 @@ const addWidget = (_event: any, options: any) => {
     uniqueId: uniqueId,
     originPath: originPath,
   });
-  let el = grid?.addWidget({
+  let option = {
     id: uniqueId,
     w: 1,
-    x: gridStackOption.x,
-    y: gridStackOption.y,
-    h: gridStackOption.h,
+    // x: gridStackOption?.x,
+    // y: gridStackOption?.y,
+    // h: gridStackOption?.h,
     autoPosition: false,
     locked: false,
     content: "",
-  });
+  };
+  if (gridStackOption) {
+  }
+  let el = grid?.addWidget(option);
 
-  createApp(Box).use(commonPinia).provide("id", uniqueId).provide("url", url).provide("name", name).mount(el.querySelector(".grid-stack-item-content"));
+  createApp(Box).use(commonPinia).provide("id", uniqueId).provide("url", url).provide("name", name).provide("xgOption", xgOption).mount(el.querySelector(".grid-stack-item-content"));
   throttleLayout();
 };
 const removeWidget = () => {
@@ -271,14 +275,24 @@ onMounted(() => {
       let currentList = items.map(item => {
         let origin = _.find(originList, { uniqueId: item.id });
         return {
-          x: item.x,
-          y: item.y,
-          w: item.w,
-          h: item.h,
+          id: item.id,
+          gridStackOption: { x: item.x, y: item.y, w: item.w, h: item.h },
           originPath: origin.originPath,
         };
       });
-      window.ipcRenderer.send("render-save-play-list", currentList);
+      //获取xg视频的播放进度
+      mitter.emit("get-xg-option", option => {
+        let tmp = _.find(currentList, { id: option.id });
+        if (tmp) {
+          tmp.xgOption = option;
+        }
+        let allReady = _.filter(currentList, item => Boolean(item.xgOption)).length == currentList.length;
+        //检查所有播放设置都获取到
+        if (allReady) {
+          console.log("🐤 - window.ipcRenderer.on - currentList:", currentList);
+          window.ipcRenderer.send("render-save-play-list", currentList);
+        }
+      });
     }
   });
 });
