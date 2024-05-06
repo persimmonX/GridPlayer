@@ -1,32 +1,35 @@
 <script setup lang="ts">
 import { GridStack, GridStackEngine, GridStackNode, GridStackMoveOpts, GridStackWidget } from "gridstack";
-import { onMounted, createApp, watch, ref, Ref, onBeforeUnmount } from "vue";
+import { onMounted, watch, ref, Ref, onBeforeUnmount, nextTick } from "vue";
 import Box from "@/components/Box.vue";
-import { useStore, commonPinia } from "@/store";
+import { useStore } from "@/store";
 import throttle from "throttleit";
 import mitter from "@/store/bus";
 import _ from "lodash";
 class CustomEngine extends GridStackEngine {
   public override moveNode(node: GridStackNode, o: GridStackMoveOpts): boolean {
-    //超出屏幕不移动
+    //超出屏幕不移动 设置maxRow
+    if (layoutDirection.value == "freeStyle") {
+      let winHeight = document.body.clientHeight;
+      let winWidth = document.body.clientWidth;
+      let count = Math.ceil(winHeight / ((winWidth / 12) * (winHeight / winWidth)));
+      this.maxRow = count;
+      return super.moveNode(node, o);
+    }
     return startDrag ? false : super.moveNode(node, o);
   }
-  // public override moveNodeCheck(node: GridStackNode, o: GridStackMoveOpts): boolean {
-  //   //超出屏幕不移动
-  //   return super.moveNodeCheck(node, o);
-  // }
 }
 const store = useStore();
-const empty = ref(true);
-const ids = {};
+let ids = {};
 const originList: { id: string; uniqueId: string; originPath: string }[] = [];
 
 GridStack.registerEngine(CustomEngine);
 let grid: GridStack | null = null;
 let currentWidgetId: any = ref("");
-let winHeight = 1080;
+const gridStackDom = ref();
+const widgets: Ref<Array<any>> = ref([]);
 let startDrag = false;
-let layoutDirection: Ref<"horizontal" | "vertical"> = ref("vertical");
+let layoutDirection: Ref<"horizontal" | "vertical" | "freeStyle"> = ref("vertical");
 function createUnique(id: string) {
   //ids
   let newId = id;
@@ -38,36 +41,63 @@ function createUnique(id: string) {
   }
   return newId;
 }
+
 const throttleLayout = throttle(layoutFill, 100);
+
 function layoutFill() {
   if (grid) {
-    const items = grid.getGridItems();
-    const count = items.length;
+    const count = widgets.value.length;
     const column = Math.ceil(Math.sqrt(count));
-    const row = Math.ceil(count / column);
-    let all = <GridStackWidget[]>grid.save(false);
+    let row = Math.ceil(count / column);
     const spaceCount = row * column - count;
-    all.forEach((item: any) => {
-      item.w = 1;
-      item.h = 1;
-    });
-    grid.cellHeight(winHeight / row);
+    const winHeight = window.document.body.clientHeight;
+    const winWidth = window.document.body.clientWidth;
+    let all = <GridStackWidget[]>grid.save(false);
     if (layoutDirection.value == "horizontal") {
+      all.forEach((item: any) => {
+        item.w = 1;
+        item.h = 1;
+      });
       let index = all.length - 1;
       all[index].w = row * column - count + 1;
+      grid.cellHeight(winHeight / row);
+      grid.load(all);
+      grid.column(column, "compact");
+      grid.enableResize(false);
+      grid.compact();
+    } else if (layoutDirection.value == "freeStyle") {
+      //自由布局
+      let initColumn = 12;
+
+      let tw = Math.floor(initColumn / column);
+      let cellHeight = (winWidth / initColumn) * (winHeight / winWidth);
+      let th = Math.floor(winHeight / cellHeight / row);
+      all.forEach((item: any) => {
+        item.w = tw;
+        item.h = th;
+      });
+      //重新计算行高
+      grid.cellHeight(cellHeight);
+      grid.column(initColumn);
+      grid.load(all);
+      grid.enableResize(true);
+      grid.compact();
     } else {
       //倒数第二行最后一位
+      all.forEach((item: any) => {
+        item.w = 1;
+        item.h = 1;
+      });
       let index = column * (row - spaceCount) - 1;
       if (all[index]) {
         all[index].h = spaceCount + 1;
       }
+      grid.cellHeight(winHeight / row);
+      grid.load(all);
+      grid.column(column, "compact");
+      grid.enableResize(false);
+      grid.compact();
     }
-
-    grid.load(all);
-    // //'list' | 'compact' | 'moveScale' | 'move' | 'scale' | 'none' |
-    grid.column(column, "compact");
-    grid.compact();
-    isEmpty();
   }
 }
 
@@ -83,39 +113,30 @@ const addWidget = (
     uniqueId: uniqueId,
     originPath: originPath,
   });
-  let option = {
+  let node = {
     id: uniqueId,
     w: 1,
-    // x: gridStackOption?.x,
-    // y: gridStackOption?.y,
-    // h: gridStackOption?.h,
-    autoPosition: false,
-    locked: false,
+    h: gridStackOption?.h,
+    x: gridStackOption?.x || 0,
+    y: gridStackOption?.y || 0,
+    name,
+    url,
+    originPath,
+    xgOption,
     content: "",
   };
-  if (gridStackOption) {
-  }
-  let el = grid?.addWidget(option);
-
-  createApp(Box).use(commonPinia).provide("id", uniqueId).provide("url", url).provide("name", name).provide("xgOption", xgOption).mount(el.querySelector(".grid-stack-item-content"));
-  throttleLayout();
+  widgets.value.push(node);
+  nextTick(() => {
+    grid?.makeWidget(node.id);
+    throttleLayout();
+  });
 };
 const removeWidget = () => {
   if (currentWidgetId.value) {
     //删除到当前grid;
-    let widget = grid?.getGridItems().filter((item: any) => {
-      let id = item.getAttribute("gs-id");
-      return id == currentWidgetId.value;
-    })[0];
-    if (!widget) return;
-    grid?.removeWidget(widget);
+    let index = _.findIndex(widgets, { id: currentWidgetId.value });
+    widgets.value.splice(index, 1);
     throttleLayout();
-  }
-};
-const isEmpty = () => {
-  let items = grid?.getGridItems();
-  if (items?.length == 0) {
-    empty.value = true;
   }
 };
 function isPointInsideElement(el, point) {
@@ -134,19 +155,19 @@ function isPointInsideElement(el, point) {
   return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
 }
 onMounted(() => {
-  winHeight = document.body.clientHeight;
+  let winHeight = document.body.clientHeight;
+  ids = {};
   grid = GridStack.init({
     margin: "0px",
-    float: false,
     cellHeight: winHeight,
     animate: true,
     column: 1,
+    float: true,
     sizeToContent: false,
-    acceptWidgets: true,
-    // disableDrag: true,
     disableResize: true,
+    disableDrag: false,
     resizable: {
-      handles: "e,s,w,n",
+      handles: "e,s,w,ns,n,se,sw,ne,nw",
     },
   });
   grid.on("dragstart", function (_event, _items) {
@@ -197,7 +218,6 @@ onMounted(() => {
   window.ipcRenderer.on("removeWidget", removeWidget);
   window.addEventListener("resize", () => {
     //重新计算cellHeight
-    winHeight = document.body.clientHeight;
     throttleLayout();
   });
   window.ipcRenderer.on("getAllWidgetCount", _event => {
@@ -230,7 +250,7 @@ onMounted(() => {
   });
   window.ipcRenderer.on("select-next", _event => {
     //根据store获取当前的widget
-    let all = <GridStackWidget[]>grid?.save();
+    let all = widgets.value;
     const index = _.findIndex(all, o => {
       return o.id === currentWidgetId.value;
     });
@@ -289,7 +309,6 @@ onMounted(() => {
         let allReady = _.filter(currentList, item => Boolean(item.xgOption)).length == currentList.length;
         //检查所有播放设置都获取到
         if (allReady) {
-          console.log("🐤 - window.ipcRenderer.on - currentList:", currentList);
           window.ipcRenderer.send("render-save-play-list", currentList);
         }
       });
@@ -319,8 +338,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="grid-stack" @dragover="dragOver($event)" @drop="drop($event)">
-    <div v-if="empty" class="empty">Ctrl+A或右键添加文件</div>
+  <div v-if="widgets.length == 0" class="empty">Ctrl+A或右键添加文件</div>
+  <div v-show="widgets.length > 0" class="grid-stack" @dragover="dragOver($event)" @drop="drop($event)" ref="gridStackDom">
+    <div class="grid-stack-item" v-for="w in widgets" :gs-x="w.x" :gs-y="w.y" :gs-w="w.w" :gs-h="w.h" :gs-id="w.id" :id="w.id" :key="w.id">
+      <div class="grid-stack-item-content">
+        <Box :id="w.id" :name="w.name" :url="w.url" :xg-option="w.xgOption" />
+      </div>
+    </div>
   </div>
 </template>
 

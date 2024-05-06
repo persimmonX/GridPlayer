@@ -29,11 +29,15 @@ function main() {
 
 const openInput = () => {
   let text = editor?.getValue();
-  let resolve = window.ipcRenderer.invoke("confirm-script", text);
-  if (resolve) {
-    resolve.then(result => {
-      resultValue.value = result;
-    });
+  let promise = window.ipcRenderer.invoke("confirm-script", text);
+  if (promise) {
+    promise
+      .then(result => {
+        resultValue.value = result;
+      })
+      .catch(e => {
+        console.log(e);
+      });
   }
 };
 const confirmLink = () => {
@@ -51,12 +55,16 @@ const exportScript = () => {
   window.ipcRenderer.send("save-script", text);
 };
 const importScript = () => {
-  const resolve = window.ipcRenderer.invoke("import-script");
-  resolve.then((result: any) => {
-    if (result) {
-      editor?.setValue(result);
-    }
-  });
+  const promise = window.ipcRenderer.invoke("import-script");
+  promise
+    .then((result: any) => {
+      if (result) {
+        editor?.setValue(result);
+      }
+    })
+    .then(e => {
+      console.log(e);
+    });
 };
 </script>
 

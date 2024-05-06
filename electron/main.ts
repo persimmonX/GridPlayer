@@ -15,7 +15,7 @@ const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const vm = require("vm");
-
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "disabled";
 // The built directory structure
 //
 // ├─┬─┬ dist
@@ -36,7 +36,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null;
 let linkPopup: null | BrowserWindow = null;
 let scriptPopup: null | BrowserWindow = null;
-let devToolIsOpen = false;
+let devToolIsOpened = false;
 let contextMenu: Menu | null = null;
 const popups: BrowserWindow[] = [];
 let template: Array<MenuItemConstructorOptions> = [
@@ -105,6 +105,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
       return false;
     })
     .map(item => {
+      item = String(item);
       return {
         label: item,
         click: () => {
@@ -130,6 +131,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
 
   let hlist = playHistory.getAll();
   let hmenu = hlist.map(item => {
+    item = String(item);
     return {
       label: item,
       click: () => {
@@ -150,8 +152,6 @@ function getMainWindowPopup(type?: "played" | "all"): any {
       click: () => {},
     });
   }
-
-  playList;
 
   let base: Array<MenuItemConstructorOptions> = [
     {
@@ -244,7 +244,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "保存播放列表",
-      accelerator: "CmdOrCtrl+S",
+      accelerator: "CmdOrCtrl+T",
       icon: path.join(__dirname, "../public/basic/131-notepad.png"),
       click: () => {
         dialog
@@ -369,6 +369,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
       submenu: [
         {
           label: "横向填充",
+          accelerator: "CmdOrCtrl+H",
           icon: path.join(__dirname, "../public/basic/034-center align.png"),
           click: () => {
             win?.webContents.send("layout-flex", "horizontal");
@@ -376,9 +377,18 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         },
         {
           label: "纵向填充",
+          accelerator: "CmdOrCtrl+J",
           icon: path.join(__dirname, "../public/basic/033-center align.png"),
           click: () => {
             win?.webContents.send("layout-flex", "vertical");
+          },
+        },
+        {
+          label: "自由布局",
+          accelerator: "CmdOrCtrl+R",
+          icon: path.join(__dirname, "../public/basic/185-top alignment.png"),
+          click: () => {
+            win?.webContents.send("layout-flex", "freeStyle");
           },
         },
       ],
@@ -482,7 +492,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "重载程序",
-      accelerator: "CmdOrCtrl+R",
+      accelerator: "CmdOrCtrl+l",
       icon: path.join(__dirname, "../public/basic/188-recycle.png"),
       role: "reload",
       click: () => {
@@ -555,7 +565,7 @@ function createPopupWindow(hashPath: string, title?: string, width = 500, height
   return popup;
 }
 function toggleDev() {
-  if (devToolIsOpen) {
+  if (devToolIsOpened) {
     win?.webContents.closeDevTools();
   } else {
     win?.webContents.openDevTools();
@@ -567,6 +577,8 @@ function createWindow() {
     icon: path.join(__dirname, "../public/main/png/16x16.png"),
     webPreferences: {
       contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
       preload: path.join(__dirname, "preload.mjs"),
     },
   });
@@ -587,12 +599,10 @@ function createWindow() {
     //检查当前有多少个窗口
   });
   win.webContents.on("devtools-opened", () => {
-    console.log("开发者工具已打开");
-    devToolIsOpen = true;
+    devToolIsOpened = true;
   });
   win.webContents.on("devtools-closed", () => {
-    console.log("开发者工具已关闭");
-    devToolIsOpen = false;
+    devToolIsOpened = false;
   });
   // Test active push message to Renderer-process.
   win.webContents.on("did-finish-load", () => {
@@ -687,12 +697,13 @@ ipcMain.on("confirm-link", (e, links) => {
 });
 
 ipcMain.handle("confirm-script", (_e, text) => {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     try {
       text += "main();";
       const result = vm.runInNewContext(text);
       resolve(result);
     } catch (error) {
+      reject(error);
       console.error("Error executing code:", error);
     }
   });

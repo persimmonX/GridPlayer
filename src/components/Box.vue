@@ -1,15 +1,36 @@
 <script setup lang="ts">
-import { inject, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useStore } from "../store";
 import Player from "xgplayer";
 import HlsJsPlugin from "xgplayer-hls.js";
 import FlvJsPlugin from "xgplayer-flv.js";
 import mitter from "@/store/bus";
 import debounce from "debounce";
-const id: string | undefined = inject("id");
-const url: string | undefined = inject("url");
-const name: string | undefined = inject("name");
-const xgOption: { currentTime: number } | undefined = inject("xgOption");
+
+const props = defineProps({
+  id: {
+    type: String,
+    required: true,
+    default: "",
+  },
+  url: {
+    type: String,
+    required: true,
+    default: "",
+  },
+  name: {
+    type: String,
+    required: true,
+    default: "",
+  },
+  xgOption: {
+    type: Object,
+    required: true,
+    default: {},
+  },
+});
+
+const { id, url, name, xgOption } = props;
 const store = useStore();
 const box = ref();
 const active = ref(false);
