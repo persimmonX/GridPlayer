@@ -6,10 +6,10 @@ import { addPlayPath, addPlayLink } from "./videoServer";
 import { readDirRecursive, isNetworkUrl } from "../util";
 import playHistory from "./store/PlayHistory";
 import scriptList from "./store/ScriptList";
-
 import fs from "fs";
 import { GridStackWidget } from "gridstack";
 import playList from "./store/PlayList";
+import _ from "lodash";
 
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
@@ -73,24 +73,42 @@ function findObjectsWithAccelerator(arr) {
   traverse(arr); // 开始遍历传入的数组
   return result;
 }
-function doSelectPlayByProtocol(urlOrPath, gridStackOption?: GridStackWidget, xgOption?: any) {
-  playHistory.add(urlOrPath);
+function doSelectPlayByProtocol(urlOrPath, gridStackOption?: GridStackWidget, xgOption?: any, layout?: string) {
   if (isNetworkUrl(urlOrPath)) {
     return addPlayLink(urlOrPath).then(({ url, id, name }: any) => {
-      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption });
+      playHistory.add(urlOrPath);
+      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption, layout });
     });
   } else {
     return addPlayPath(urlOrPath).then(({ url, id, name }: any) => {
-      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption });
+      playHistory.add(urlOrPath);
+      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption, layout });
     });
   }
 }
 function playJSONList(filePath: string) {
   let str = fs.readFileSync(filePath, "utf-8");
-  let data = JSON.parse(str);
-  if (data && data.length > 0) {
-    data.forEach(d => {
-      doSelectPlayByProtocol(d.originPath, { x: d.gridStackOption.x, y: d.gridStackOption.y, w: d.gridStackOption.w, h: d.gridStackOption.h }, { currentTime: d.xgOption.currentTime });
+  let data: { layout: string; widgets: Array<{ id: string; originPath: string; gridStackOption: any; xgOption: any }> } = JSON.parse(str);
+  if (data && data.widgets.length > 0) {
+    let all = data.widgets.map(widget => {
+      if (isNetworkUrl(widget.originPath)) {
+        return addPlayLink(widget.originPath, widget.id);
+      } else {
+        return addPlayPath(widget.originPath, widget.id);
+      }
+    });
+    Promise.all(all).then(result => {
+      //{ id, originPath: urlOrPath, name, url, gridStackOption, xgOption, layout }
+      result.forEach((item: any) => {
+        let w = _.find(data.widgets, { id: item.originId });
+        if (w) {
+          item.originPath = w.originPath;
+          item.gridStackOption = w.gridStackOption;
+          item.xgOption = w.xgOption;
+          item.layout = data.layout;
+        }
+      });
+      win?.webContents.send("addWidgets", result);
     });
   }
 }

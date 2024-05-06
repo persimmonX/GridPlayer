@@ -1,11 +1,10 @@
 import { createRequire } from "node:module";
 import { separateDomainAndPath } from "../util/index";
-import { rewriteDefault } from "vue/compiler-sfc";
+import { v4 as uuidv4 } from "uuid";
 const require = createRequire(import.meta.url);
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const CryptoJS = require("crypto-js");
 const net = require("net");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 let startPort = 4000;
@@ -103,10 +102,10 @@ app.get("/video-stream/:videoId", (req: any, res: any) => {
 });
 
 const pathList = new Map();
-const addPlayPath = (filePath: string) => {
+const addPlayPath = (filePath: string, originId?: string) => {
   return new Promise((resolve, reject) => {
     const addWidget = port => {
-      let id = CryptoJS.MD5(filePath).toString();
+      let id = "v" + uuidv4();
       let url = `http://127.0.0.1:${port}/video-stream/${id}`;
       let fileName = path.basename(filePath);
       // 如果你还想要获取文件扩展名，可以使用path.extname()
@@ -115,7 +114,7 @@ const addPlayPath = (filePath: string) => {
       // 如果你想要获取不带扩展名的文件名，可以这样做：
       let name = path.basename(filePath, path.extname(filePath));
       pathList.set(id, filePath);
-      resolve({ id, url, fileName, fileExtension, fileType, name });
+      resolve({ id, url, fileName, fileExtension, fileType, name, originId });
     };
     findAvailablePort(startPort, 180000, (err, port) => {
       if (err) {
@@ -136,7 +135,7 @@ const addPlayPath = (filePath: string) => {
     });
   });
 };
-const addPlayLink = (link: string) => {
+const addPlayLink = (link: string, originId?: string) => {
   return new Promise((resolve, reject) => {
     //@ts-ignore
     const { domain, path } = separateDomainAndPath(link);
@@ -153,7 +152,7 @@ const addPlayLink = (link: string) => {
         }
       }
       startPort = port;
-      let id = CryptoJS.MD5(link).toString();
+      let id = "v" + uuidv4();
       let url = `http://127.0.0.1:${port}/proxy-link/${path}`;
       let fileName = link;
       let fileExtension = link;
@@ -166,7 +165,7 @@ const addPlayLink = (link: string) => {
       });
       app.use(`/proxy-link`, middle);
 
-      resolve({ id, url, fileName, fileExtension, fileType, name });
+      resolve({ id, url, fileName, fileExtension, fileType, name, originId });
     });
   });
 };

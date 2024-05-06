@@ -9,19 +9,15 @@ import _ from "lodash";
 class CustomEngine extends GridStackEngine {
   public override moveNode(node: GridStackNode, o: GridStackMoveOpts): boolean {
     //超出屏幕不移动 设置maxRow
-    if (layoutDirection.value == "freeStyle") {
-      let winHeight = document.body.clientHeight;
-      let winWidth = document.body.clientWidth;
-      let count = Math.ceil(winHeight / ((winWidth / 12) * (winHeight / winWidth)));
-      this.maxRow = count;
+    if (layout.value == "freeStyle") {
+      this.maxRow = 12;
       return super.moveNode(node, o);
     }
     return startDrag ? false : super.moveNode(node, o);
   }
 }
 const store = useStore();
-let ids = {};
-const originList: { id: string; uniqueId: string; originPath: string }[] = [];
+const originList: { id: string; originPath: string }[] = [];
 
 GridStack.registerEngine(CustomEngine);
 let grid: GridStack | null = null;
@@ -29,21 +25,9 @@ let currentWidgetId: any = ref("");
 const gridStackDom = ref();
 const widgets: Ref<Array<any>> = ref([]);
 let startDrag = false;
-let layoutDirection: Ref<"horizontal" | "vertical" | "freeStyle"> = ref("vertical");
-function createUnique(id: string) {
-  //ids
-  let newId = id;
-  if (ids[id]) {
-    newId = id + ids[id].length;
-    ids[id].push(newId);
-  } else {
-    ids[id] = [id];
-  }
-  return newId;
-}
+let layout: Ref<"horizontal" | "vertical" | "freeStyle"> = ref("vertical");
 
 const throttleLayout = throttle(layoutFill, 100);
-
 function layoutFill() {
   if (grid) {
     const count = widgets.value.length;
@@ -51,9 +35,8 @@ function layoutFill() {
     let row = Math.ceil(count / column);
     const spaceCount = row * column - count;
     const winHeight = window.document.body.clientHeight;
-    const winWidth = window.document.body.clientWidth;
     let all = <GridStackWidget[]>grid.save(false);
-    if (layoutDirection.value == "horizontal") {
+    if (layout.value == "horizontal") {
       all.forEach((item: any) => {
         item.w = 1;
         item.h = 1;
@@ -65,16 +48,15 @@ function layoutFill() {
       grid.column(column, "compact");
       grid.enableResize(false);
       grid.compact();
-    } else if (layoutDirection.value == "freeStyle") {
+    } else if (layout.value == "freeStyle") {
       //自由布局
       let initColumn = 12;
 
       let tw = Math.floor(initColumn / column);
-      let cellHeight = (winWidth / initColumn) * (winHeight / winWidth);
-      let th = Math.floor(winHeight / cellHeight / row);
+      let cellHeight = winHeight / initColumn;
       all.forEach((item: any) => {
         item.w = tw;
-        item.h = th;
+        item.h = Math.floor(initColumn / row);
       });
       //重新计算行高
       grid.cellHeight(cellHeight);
@@ -103,18 +85,27 @@ function layoutFill() {
 
 const addWidget = (
   _event: any,
-  options: { id: string; name: string; url: string; originPath: string; gridStackOption?: { x: number; y: number; h: number; w: number }; xgOption?: { currentTime: number } }
+  option: {
+    id: string;
+    name: string;
+    url: string;
+    originPath: string;
+    gridStackOption?: { x: number; y: number; h: number; w: number };
+    xgOption?: { currentTime: number };
+    layout?: "horizontal" | "vertical" | "freeStyle";
+  }
 ) => {
-  const { id, name, url, originPath, gridStackOption, xgOption } = options;
+  const { id, name, url, originPath, gridStackOption, xgOption, layout: layoutStyle } = option;
   //检查id是否已存在
-  let uniqueId = createUnique(id);
+  if (layoutStyle) {
+    layout.value = layoutStyle;
+  }
   originList.push({
     id: id,
-    uniqueId: uniqueId,
     originPath: originPath,
   });
   let node = {
-    id: uniqueId,
+    id: id,
     w: 1,
     h: gridStackOption?.h,
     x: gridStackOption?.x || 0,
@@ -131,12 +122,90 @@ const addWidget = (
     throttleLayout();
   });
 };
+const addWidgets = (
+  _event: any,
+  options: Array<{
+    id: string;
+    name: string;
+    url: string;
+    originPath: string;
+    gridStackOption?: { x: number; y: number; h: number; w: number };
+    xgOption?: { currentTime: number };
+    layout?: "horizontal" | "vertical" | "freeStyle";
+  }>
+) => {
+  for (let option of options) {
+    const { id, name, url, originPath, gridStackOption, xgOption, layout: layoutStyle } = option;
+    //检查id是否已存在
+    if (layoutStyle) {
+      layout.value = layoutStyle;
+    }
+    originList.push({
+      id: id,
+      originPath: originPath,
+    });
+    let node = {
+      id: id,
+      w: gridStackOption?.w || 0,
+      h: gridStackOption?.h || 0,
+      x: gridStackOption?.x || 0,
+      y: gridStackOption?.y || 0,
+      name,
+      url,
+      originPath,
+      xgOption,
+      content: "",
+    };
+    widgets.value.push(node);
+  }
+
+  nextTick(() => {
+    for (let option of options) {
+      if (option.layout) {
+        layout.value = option.layout;
+      }
+      grid?.makeWidget(option.id);
+    }
+    //设置cell
+    const count = widgets.value.length;
+    const column = Math.ceil(Math.sqrt(count));
+    let row = Math.ceil(count / column);
+    const winHeight = window.document.body.clientHeight;
+    const winWidth = window.document.body.clientWidth;
+    if (layout.value == "horizontal") {
+      grid?.cellHeight(winHeight / row);
+      grid?.column(column, "compact");
+      grid?.enableResize(false);
+      grid?.compact();
+    } else if (layout.value == "freeStyle") {
+      let initColumn = 12;
+      let cellHeight = (winWidth / initColumn) * (winHeight / winWidth);
+      //重新计算行高
+      grid?.cellHeight(cellHeight);
+      grid?.column(initColumn);
+      grid?.enableResize(true);
+      // grid?.compact();
+    } else {
+      grid?.cellHeight(winHeight / row);
+      grid?.column(column, "compact");
+      grid?.enableResize(false);
+      grid?.compact();
+    }
+  });
+};
 const removeWidget = () => {
   if (currentWidgetId.value) {
     //删除到当前grid;
-    let index = _.findIndex(widgets, { id: currentWidgetId.value });
-    widgets.value.splice(index, 1);
-    throttleLayout();
+    let index = _.findIndex(widgets.value, { id: currentWidgetId.value });
+    if (index > -1) {
+      grid?.removeWidget(`#${currentWidgetId.value}`, true);
+      widgets.value.splice(index, 1);
+      nextTick(() => {
+        if (layout.value != "freeStyle") {
+          throttleLayout();
+        }
+      });
+    }
   }
 };
 function isPointInsideElement(el, point) {
@@ -156,7 +225,6 @@ function isPointInsideElement(el, point) {
 }
 onMounted(() => {
   let winHeight = document.body.clientHeight;
-  ids = {};
   grid = GridStack.init({
     margin: "0px",
     cellHeight: winHeight,
@@ -215,6 +283,7 @@ onMounted(() => {
   });
 
   window.ipcRenderer.on("addWidget", addWidget);
+  window.ipcRenderer.on("addWidgets", addWidgets);
   window.ipcRenderer.on("removeWidget", removeWidget);
   window.addEventListener("resize", () => {
     //重新计算cellHeight
@@ -245,7 +314,7 @@ onMounted(() => {
     mitter.emit("setAllStart", true);
   });
   window.ipcRenderer.on("layout-flex", (_event, direction: any) => {
-    layoutDirection.value = direction;
+    layout.value = direction;
     throttleLayout();
   });
   window.ipcRenderer.on("select-next", _event => {
@@ -293,7 +362,7 @@ onMounted(() => {
     if (items) {
       //@ts-ignore
       let currentList = items.map(item => {
-        let origin = _.find(originList, { uniqueId: item.id });
+        let origin = _.find(originList, { id: item.id });
         return {
           id: item.id,
           gridStackOption: { x: item.x, y: item.y, w: item.w, h: item.h },
@@ -309,7 +378,10 @@ onMounted(() => {
         let allReady = _.filter(currentList, item => Boolean(item.xgOption)).length == currentList.length;
         //检查所有播放设置都获取到
         if (allReady) {
-          window.ipcRenderer.send("render-save-play-list", currentList);
+          window.ipcRenderer.send("render-save-play-list", {
+            layout: layout.value,
+            widgets: currentList,
+          });
         }
       });
     }
