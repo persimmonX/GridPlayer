@@ -575,6 +575,7 @@ function createWindow() {
   win = new BrowserWindow({
     title: "GridPlayer",
     icon: path.join(__dirname, "../public/main/png/16x16.png"),
+    focusable: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -582,6 +583,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.mjs"),
     },
   });
+  win.setFocusable(true);
 
   contextMenu = Menu.buildFromTemplate(getMainWindowPopup());
   win.webContents.on("context-menu", (e, params) => {
