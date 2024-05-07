@@ -45,10 +45,11 @@ function layoutFill() {
           if (all[start]) {
             all[start].y = i;
             all[start].x = j;
-            all[start].w = 1;
             all[start].h = 1;
             if (spaceCount && i == row - 1 && j == column - spaceCount - 1) {
               all[start].w = spaceCount + 1;
+            } else {
+              all[start].w = 1;
             }
             start++;
           }
@@ -86,10 +87,11 @@ function layoutFill() {
             all[start].y = i;
             all[start].x = j;
             all[start].w = 1;
-            all[start].h = 1;
             //倒数
             if (spaceCount && i == row - spaceCount - 1 && j == column - 1) {
               all[start].h = spaceCount + 1;
+            } else {
+              all[start].h = 1;
             }
             start++;
           }
@@ -97,7 +99,7 @@ function layoutFill() {
       }
       grid.float(false);
       grid.cellHeight(winHeight / row);
-      grid.load(all);
+      grid.load(all, true);
       grid.column(column, "compact");
       grid.enableResize(false);
       grid.compact();
@@ -142,6 +144,9 @@ const addWidget = (
   nextTick(() => {
     grid?.makeWidget(node.id);
     throttleLayout();
+    nextTick(() => {
+      throttleLayout();
+    });
   });
 };
 const addWidgets = (
