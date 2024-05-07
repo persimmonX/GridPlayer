@@ -43,8 +43,9 @@ function layoutFill() {
         item.w = 1;
         item.h = 1;
       });
-      //通过x,y找到最后一个
-
+      //找出当前组件最后一个
+      let index = all.length - 1;
+      all[index].w = row * column - count + 1;
       grid.float(false);
       grid.cellHeight(winHeight / row);
       grid.load(all);
