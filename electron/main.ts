@@ -755,12 +755,49 @@ ipcMain.handle("confirm-script", (_e, text) => {
     }
   });
 });
-ipcMain.on("play-script", (_e, links) => {
-  for (let link of links) {
-    doSelectPlayByProtocol(link).then(() => {
-      scriptPopup?.close();
+ipcMain.on("play-script", (_e, links, text) => {
+  dialog
+    .showMessageBox({
+      type: "info",
+      buttons: ["确定", "取消"],
+      title: "确认",
+      message: "播放前请确定是否保存当前脚本？",
+      defaultId: 0, // 默认选中的按钮索引，0 对应 "确定"
+      cancelId: 1, // 取消按钮的索引，1 对应 "取消"
+    })
+    .then(res => {
+      if (res.response == 0) {
+        dialog
+          .showSaveDialog({
+            title: "保存脚本",
+            filters: [
+              { name: "Text Files", extensions: ["js"] },
+              { name: "All Files", extensions: ["*"] },
+            ],
+          })
+          .then(result => {
+            if (!result.canceled) {
+              // 发送文件路径给渲染进程
+              let filePath = result.filePath;
+              fs.writeFileSync(filePath, text);
+              scriptList.add(filePath);
+            }
+            for (let link of links) {
+              doSelectPlayByProtocol(link).then(() => {
+                scriptPopup?.close();
+              });
+            }
+          })
+          .catch(err => {
+            console.error(err);
+          });
+      } else {
+      }
+    })
+    .finally(() => {})
+    .catch(err => {
+      console.log("show confirm dialog error", err);
     });
-  }
 });
 ipcMain.on("cancel-script", _e => {
   scriptPopup?.close();
@@ -785,6 +822,16 @@ ipcMain.on("save-script", (_e, text) => {
     .catch(err => {
       console.error(err);
     });
+});
+ipcMain.handle("get-near-last-script", () => {
+  let all = scriptList.getAll();
+  let last = _.last(all);
+  if (last) {
+    let text = fs.readFileSync(last, "utf-8");
+    return text;
+  } else {
+    return "";
+  }
 });
 ipcMain.handle("import-script", _e => {
   const options = {

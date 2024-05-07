@@ -11,8 +11,23 @@ onMounted(() => {
   editor = Ace.edit(editorDom.value);
   editor.getSession().setMode(new mode.Mode()); // 设置模式（例如，JavaScript）
   editor.setTheme(dracula);
-
   editor.setShowPrintMargin(false);
+
+  window.ipcRenderer.invoke("get-near-last-script").then(result => {
+    if (result) {
+      editor?.setValue(result);
+    } else {
+      editor?.setValue(`/**
+ * 执行脚本
+ * @returns path[] | Promise
+ */
+function main() {
+  //return new Promise(resolve=>{})
+  return [];
+}`); // 设置初始值
+    }
+  });
+
   editor.setValue(`/**
  * 执行脚本
  * @returns path[] | Promise
@@ -43,8 +58,9 @@ const openInput = () => {
 const confirmLink = () => {
   if (resultValue.value && resultValue.value.length > 0) {
     //校验视频地址
+    let text = editor?.getValue();
     let urls = resultValue.value.map(item => item);
-    window.ipcRenderer.send("play-script", urls);
+    window.ipcRenderer.send("play-script", urls, text);
   }
 };
 const cancelLink = () => {
