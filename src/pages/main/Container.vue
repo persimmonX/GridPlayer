@@ -39,13 +39,22 @@ function layoutFill() {
     const winHeight = window.document.body.clientHeight;
     let all = <GridStackWidget[]>grid.save(false);
     if (layout.value == "horizontal") {
-      all.forEach((item: any) => {
-        item.w = 1;
-        item.h = 1;
-      });
-      //找出当前组件最后一个
-      let index = all.length - 1;
-      all[index].w = row * column - count + 1;
+      let start = 0;
+      for (let i = 0; i < row; i++) {
+        for (let j = 0; j < column; j++) {
+          if (all[start]) {
+            all[start].y = i;
+            all[start].x = j;
+            all[start].w = 1;
+            all[start].h = 1;
+            if (spaceCount && i == row - 1 && j == column - spaceCount - 1) {
+              all[start].w = spaceCount + 1;
+            }
+            start++;
+          }
+        }
+      }
+
       grid.float(false);
       grid.cellHeight(winHeight / row);
       grid.load(all);
@@ -70,13 +79,21 @@ function layoutFill() {
       grid.compact();
     } else {
       //倒数第二行最后一位
-      all.forEach((item: any) => {
-        item.w = 1;
-        item.h = 1;
-      });
-      let index = column * (row - spaceCount) - 1;
-      if (all[index]) {
-        all[index].h = spaceCount + 1;
+      let start = 0;
+      for (let i = 0; i < row; i++) {
+        for (let j = 0; j < column; j++) {
+          if (all[start]) {
+            all[start].y = i;
+            all[start].x = j;
+            all[start].w = 1;
+            all[start].h = 1;
+            //倒数
+            if (spaceCount && i == row - spaceCount - 1 && j == column - 1) {
+              all[start].h = spaceCount + 1;
+            }
+            start++;
+          }
+        }
       }
       grid.float(false);
       grid.cellHeight(winHeight / row);
@@ -183,7 +200,6 @@ const addWidgets = (
       grid?.column(column, "compact");
       grid?.enableResize(false);
       grid?.compact();
-      grid?.commit();
     } else if (layout.value == "freeStyle") {
       let initColumn = 12;
       let cellHeight = (winWidth / initColumn) * (winHeight / winWidth);
@@ -192,14 +208,12 @@ const addWidgets = (
       grid?.cellHeight(cellHeight);
       grid?.column(initColumn);
       grid?.enableResize(true);
-      grid?.commit();
     } else {
       grid?.float(false);
       grid?.cellHeight(winHeight / row);
       grid?.column(column, "compact");
       grid?.enableResize(false);
       grid?.compact();
-      grid?.commit();
     }
   });
 };
@@ -331,7 +345,7 @@ onMounted(() => {
   });
   window.ipcRenderer.on("select-next", _event => {
     //根据store获取当前的widget
-    let all = widgets.value;
+    let all = <[]>grid?.save(false);
     const index = _.findIndex(all, o => {
       return o.id === currentWidgetId.value;
     });
