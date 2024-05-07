@@ -15,13 +15,17 @@ declare namespace NodeJS {
      * │
      * ```
      */
-    APP_ROOT: string
+    APP_ROOT: string;
     /** /dist/ or /public/ */
-    VITE_PUBLIC: string
+    VITE_PUBLIC: string;
   }
 }
 
+interface MyipcRender extends Electron.IpcRenderer {
+  setStoreValue: (string, any) => any;
+  getStoreValue: (string) => any;
+}
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
-  ipcRenderer: import('electron').IpcRenderer
+  ipcRenderer: MyipcRender;
 }

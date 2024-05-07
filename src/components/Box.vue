@@ -6,6 +6,7 @@ import HlsJsPlugin from "xgplayer-hls.js";
 import FlvJsPlugin from "xgplayer-flv.js";
 import mitter from "@/store/bus";
 import debounce from "debounce";
+import _ from "lodash";
 
 const props = defineProps({
   id: {
@@ -33,6 +34,7 @@ const props = defineProps({
 const { id, url, name, xgOption } = props;
 const store = useStore();
 const box = ref();
+
 const active = ref(false);
 const select = ref(false);
 const playerDom = ref();
@@ -69,19 +71,22 @@ onMounted(() => {
   } else if (url?.endsWith(".flv")) {
     plugins.push(FlvJsPlugin);
   }
-  console.log("xgOption", xgOption);
+  const defaultMute = _.deepFind(store.$state.configs.list, "startMute");
+  const loop = _.deepFind(store.$state.configs.list, "loop");
+  const autoplay = _.deepFind(store.$state.configs.list, "startMute");
+  const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
   player = new Player({
     el: playerDom.value,
     url: url,
-    autoplay: !store.allPause,
-    autoplayMuted: store.allMuted,
+    autoplay: autoplay,
+    autoplayMuted: defaultMute,
     lang: "zh-cn",
     width: "100%",
     height: "100%",
     mode: "cors",
-    startTime: xgOption?.currentTime,
+    startTime: xgOption?.currentTime || startTime,
     loading: false,
-    loop: true,
+    loop: loop,
     closeVideoClick: true,
     plugins: plugins,
     videoFillMode: "cover",
@@ -230,6 +235,22 @@ mitter.on("setAllPause", (value: boolean) => {
 mitter.on("duration-active", (activeId: string) => {
   if (activeId == id) {
     select.value = true;
+  }
+});
+mitter.on("reload-video", () => {
+  if (store.$state.currentWidget == id) {
+    player?.reload();
+    const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
+    if (startTime && player) {
+      player.currentTime = startTime;
+    }
+  }
+});
+mitter.on("reload-video-all", () => {
+  player?.reload();
+  const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
+  if (startTime && player) {
+    player.currentTime = startTime;
   }
 });
 watch(select, value => {

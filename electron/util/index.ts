@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import _ from "lodash";
 function readDirRecursive(dirPath: any) {
   return new Promise((resolve, reject) => {
     fs.readdir(dirPath, (err, files) => {
@@ -61,4 +62,5 @@ function isNetworkUrl(url) {
   const networkProtocols = /^(https?:|ftp:|file:)/i;
   return networkProtocols.test(url);
 }
+
 export { readDirRecursive, separateDomainAndPath, isNetworkUrl };

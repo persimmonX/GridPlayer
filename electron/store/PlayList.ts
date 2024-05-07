@@ -1,10 +1,9 @@
 import _ from "lodash";
 import BaseList from "./BaseList";
-const name = "playlist";
-const key = "list";
+const key = "playlist";
 class PlayList extends BaseList {
   constructor() {
-    super(name, key);
+    super(key);
   }
 }
 const playList = new PlayList();

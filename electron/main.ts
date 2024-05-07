@@ -3,14 +3,14 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { addPlayPath, addPlayLink } from "./videoServer";
-import { readDirRecursive, isNetworkUrl } from "../util";
+import { readDirRecursive, isNetworkUrl } from "./util";
 import playHistory from "./store/PlayHistory";
 import scriptList from "./store/ScriptList";
 import fs from "fs";
 import { GridStackWidget } from "gridstack";
 import playList from "./store/PlayList";
 import _ from "lodash";
-
+import store from "./store";
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,6 +36,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null;
 let linkPopup: null | BrowserWindow = null;
 let scriptPopup: null | BrowserWindow = null;
+let configPopup: null | BrowserWindow = null;
 let devToolIsOpened = false;
 let contextMenu: Menu | null = null;
 const popups: BrowserWindow[] = [];
@@ -321,6 +322,14 @@ function getMainWindowPopup(type?: "played" | "all"): any {
   };
   let played: Array<MenuItemConstructorOptions> = [
     {
+      label: "重新加载",
+      accelerator: "CmdOrCtrl+R",
+      icon: path.join(__dirname, "../public/basic/150-recycle.png"),
+      click: event => {
+        win?.webContents.send("reload-video");
+      },
+    },
+    {
       label: "删除窗口",
       accelerator: "CmdOrCtrl+X",
       icon: path.join(__dirname, "../public/basic/031-cancel.png"),
@@ -353,6 +362,14 @@ function getMainWindowPopup(type?: "played" | "all"): any {
               icon: path.join(__dirname, "../public/basic/145-play.png"),
               click: () => {
                 win?.webContents.send("setAllStart");
+              },
+            },
+            {
+              label: "重新加载",
+              accelerator: "CmdOrCtrl+Shift+R",
+              icon: path.join(__dirname, "../public/basic/151-recycle.png"),
+              click: event => {
+                win?.webContents.send("reload-video-all");
               },
             },
           ],
@@ -403,7 +420,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         },
         {
           label: "自由布局",
-          accelerator: "CmdOrCtrl+R",
+          accelerator: "CmdOrCtrl+F",
           icon: path.join(__dirname, "../public/basic/185-top alignment.png"),
           click: () => {
             win?.webContents.send("layout-flex", "freeStyle");
@@ -491,6 +508,15 @@ function getMainWindowPopup(type?: "played" | "all"): any {
   ];
   let dev: Array<MenuItemConstructorOptions> = [
     {
+      label: "设置",
+      accelerator: "CmdOrCtrl+F6",
+      icon: path.join(__dirname, "../public/basic/128-monitor.png"),
+      click: () => {
+        // 打开设置弹窗
+        configPopup = createPopupWindow("config", "设置", 800, 600);
+      },
+    },
+    {
       label: "打开控制台",
       accelerator: "CmdOrCtrl+F12",
       icon: path.join(__dirname, "../public/basic/128-monitor.png"),
@@ -499,15 +525,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         toggleDev();
       },
     },
-    {
-      label: "查看SVG",
-      icon: path.join(__dirname, "../public/basic/107-image.png"),
-      click: () => {
-        // 播放在线视频
-        createPopupWindow("svg", "svg");
-        //获取/public/basic/*.svg
-      },
-    },
+
     {
       label: "重载程序",
       accelerator: "CmdOrCtrl+l",
@@ -519,6 +537,15 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
   ];
   let setting: Array<MenuItemConstructorOptions> = [
+    {
+      label: "查看SVG",
+      icon: path.join(__dirname, "../public/basic/107-image.png"),
+      click: () => {
+        // 播放在线视频
+        createPopupWindow("svg", "svg");
+        //获取/public/basic/*.svg
+      },
+    },
     {
       label: "关于",
       icon: path.join(__dirname, "../public/basic/132-note.png"),
@@ -565,7 +592,7 @@ function createPopupWindow(hashPath: string, title?: string, width = 500, height
     show: false,
     // resizable: false,
     icon: path.join(__dirname, "../public/main/png/16x16.png"),
-    backgroundColor: "red",
+    backgroundColor: "#f8f8f8",
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.mjs"),
@@ -791,14 +818,16 @@ ipcMain.handle("import-script", _e => {
       });
   });
 });
-// ipcMain.on("get-widget-count", (_e, count) => {
-//   if (count > 0) {
-//     //弹出菜单中需要添加新的
-//     contextMenu = Menu.buildFromTemplate(getMainWindowPopup("played"));
-//   } else {
-//     contextMenu = Menu.buildFromTemplate(getMainWindowPopup());
-//   }
-// });
+ipcMain.handle("get-store-value", (_e, key: string) => {
+  return store.get(key);
+});
+ipcMain.handle("set-store-value", (_e, key: string, value: any) => {
+  store.set(key, value);
+});
+ipcMain.on("close-config-popup", _e => {
+  configPopup?.close();
+});
+
 //changeToPNG
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

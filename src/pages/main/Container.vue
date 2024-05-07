@@ -12,6 +12,8 @@ class CustomEngine extends GridStackEngine {
     if (layout.value == "freeStyle") {
       this.maxRow = 12;
       return super.moveNode(node, o);
+    } else {
+      this.maxRow = 0;
     }
     return startDrag ? false : super.moveNode(node, o);
   }
@@ -41,8 +43,9 @@ function layoutFill() {
         item.w = 1;
         item.h = 1;
       });
-      let index = all.length - 1;
-      all[index].w = row * column - count + 1;
+      //通过x,y找到最后一个
+
+      grid.float(false);
       grid.cellHeight(winHeight / row);
       grid.load(all);
       grid.column(column, "compact");
@@ -51,7 +54,6 @@ function layoutFill() {
     } else if (layout.value == "freeStyle") {
       //自由布局
       let initColumn = 12;
-
       let tw = Math.floor(initColumn / column);
       let cellHeight = winHeight / initColumn;
       all.forEach((item: any) => {
@@ -59,6 +61,7 @@ function layoutFill() {
         item.h = Math.floor(initColumn / row);
       });
       //重新计算行高
+      grid.float(true);
       grid.cellHeight(cellHeight);
       grid.column(initColumn);
       grid.load(all);
@@ -74,6 +77,7 @@ function layoutFill() {
       if (all[index]) {
         all[index].h = spaceCount + 1;
       }
+      grid.float(false);
       grid.cellHeight(winHeight / row);
       grid.load(all);
       grid.column(column, "compact");
@@ -173,23 +177,28 @@ const addWidgets = (
     const winHeight = window.document.body.clientHeight;
     const winWidth = window.document.body.clientWidth;
     if (layout.value == "horizontal") {
+      grid?.float(false);
       grid?.cellHeight(winHeight / row);
       grid?.column(column, "compact");
       grid?.enableResize(false);
       grid?.compact();
+      grid?.commit();
     } else if (layout.value == "freeStyle") {
       let initColumn = 12;
       let cellHeight = (winWidth / initColumn) * (winHeight / winWidth);
       //重新计算行高
+      grid?.float(true);
       grid?.cellHeight(cellHeight);
       grid?.column(initColumn);
       grid?.enableResize(true);
-      // grid?.compact();
+      grid?.commit();
     } else {
+      grid?.float(false);
       grid?.cellHeight(winHeight / row);
       grid?.column(column, "compact");
       grid?.enableResize(false);
       grid?.compact();
+      grid?.commit();
     }
   });
 };
@@ -225,6 +234,7 @@ function isPointInsideElement(el, point) {
 }
 onMounted(() => {
   let winHeight = document.body.clientHeight;
+  layout.value = _.deepFind(store.$state.configs.list, "layout", layout.value);
   grid = GridStack.init({
     margin: "0px",
     cellHeight: winHeight,
@@ -238,6 +248,7 @@ onMounted(() => {
       handles: "e,s,w,ns,n,se,sw,ne,nw",
     },
   });
+
   grid.on("dragstart", function (_event, _items) {
     // 处理拖动停止后的逻辑，例如更新数据库中的位置信息
     startDrag = true;
@@ -386,6 +397,12 @@ onMounted(() => {
       });
     }
   });
+  window.ipcRenderer.on("reload-video", () => {
+    mitter.emit("reload-video");
+  });
+  window.ipcRenderer.on("reload-video-all", () => {
+    mitter.emit("reload-video-all");
+  });
 });
 
 watch(
@@ -410,7 +427,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="widgets.length == 0" class="empty">Ctrl+A或右键添加文件</div>
+  <div v-if="widgets.length == 0" class="empty">Ctrl+A/右键添加/拖拽文件</div>
   <div v-show="widgets.length > 0" class="grid-stack" @dragover="dragOver($event)" @drop="drop($event)" ref="gridStackDom">
     <div class="grid-stack-item" v-for="w in widgets" :gs-x="w.x" :gs-y="w.y" :gs-w="w.w" :gs-h="w.h" :gs-id="w.id" :id="w.id" :key="w.id">
       <div class="grid-stack-item-content">

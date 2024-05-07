@@ -1,24 +1,13 @@
 import _ from "lodash";
 import Store from "electron-store";
+import store from "./index";
 class BaseList {
-  store: Store<Record<any, string[]>>;
+  store: Store;
   maxReturn: number;
   key: string;
-  name: string;
-  constructor(name, key) {
-    this.name = name;
+  constructor(key) {
     this.key = key;
-    const schema = {
-      properties: {
-        [key]: {
-          type: ["array", "string"],
-          items: { type: "string" },
-          default: [],
-        },
-      },
-      name: this.name,
-    };
-    this.store = new Store(schema);
+    this.store = store;
     this.maxReturn = 30;
     this.key = key;
   }
@@ -36,7 +25,7 @@ class BaseList {
     this.store.set(this.key, newArray);
   }
   getAll(): string[] {
-    let all = this.store.get(this.key);
+    let all = <string[]>this.store.get(this.key);
     return all ? all.slice(0, this.maxReturn) : [];
   }
   removeAll() {

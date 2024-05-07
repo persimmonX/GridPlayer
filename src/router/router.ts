@@ -27,7 +27,12 @@ const routes = [
     name: "script",
     component: () => import("@/pages/setting/Script.vue"),
   },
-]
+  {
+    path: "/config",
+    name: "设置",
+    component: () => import("@/pages/setting/Config.vue"),
+  },
+];
 // 创建router实例
 const router = createRouter({
   history: createWebHashHistory(),

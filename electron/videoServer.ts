@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { separateDomainAndPath } from "../util/index";
+import { separateDomainAndPath } from "./util/index";
 import { v4 as uuidv4 } from "uuid";
 const require = createRequire(import.meta.url);
 const express = require("express");

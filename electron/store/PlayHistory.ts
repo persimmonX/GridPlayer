@@ -1,10 +1,9 @@
 import _ from "lodash";
 import BaseList from "./BaseList";
-const name = "playhistory";
-const key = "list";
+const key = "playhistory";
 class PlayHistory extends BaseList {
   constructor() {
-    super(name, key);
+    super(key);
   }
 }
 const playHistory = new PlayHistory();
