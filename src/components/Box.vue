@@ -87,6 +87,7 @@ onMounted(() => {
     startTime: xgOption?.currentTime || startTime,
     loading: false,
     loop: loop,
+    download: true,
     closeVideoClick: true,
     plugins: plugins,
     videoFillMode: "cover",

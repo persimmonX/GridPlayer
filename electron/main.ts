@@ -792,6 +792,11 @@ ipcMain.on("play-script", (_e, links, text) => {
             console.error(err);
           });
       } else {
+        for (let link of links) {
+          doSelectPlayByProtocol(link).then(() => {
+            scriptPopup?.close();
+          });
+        }
       }
     })
     .finally(() => {})
