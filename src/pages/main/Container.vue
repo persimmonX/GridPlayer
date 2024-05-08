@@ -496,5 +496,6 @@ onBeforeUnmount(() => {
   font-size: 36px;
   color: #999;
   user-select: none;
+  background-position: center;
 }
 </style>
