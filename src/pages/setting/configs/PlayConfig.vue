@@ -24,6 +24,7 @@ onMounted(() => {
       var file = new File([name], name, {
         type: "image/png",
         lastModified: Date.now(),
+        //@ts-ignore
         lastModifiedDate: new Date(),
       });
       Object.defineProperty(file, "size", { value: 1024 });

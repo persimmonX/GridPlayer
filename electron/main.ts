@@ -483,6 +483,14 @@ function getMainWindowPopup(type?: "played" | "all"): any {
             win?.webContents.send("move-right");
           },
         },
+        {
+          label: "还原",
+          accelerator: "CmdOrCtrl+num0",
+          icon: path.join(__dirname, "../public/basic/163-search.png"),
+          click: () => {
+            win?.webContents.send("reset-normal");
+          },
+        },
       ],
     },
     {

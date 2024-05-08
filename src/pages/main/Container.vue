@@ -395,6 +395,9 @@ onMounted(() => {
   window.ipcRenderer.on("move-left", () => {
     mitter.emit("move-left");
   });
+  window.ipcRenderer.on("reset-normal", () => {
+    mitter.emit("reset-normal");
+  });
   window.ipcRenderer.on("move-right", () => {
     mitter.emit("move-right");
   });

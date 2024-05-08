@@ -48,6 +48,7 @@ const box = ref();
 const active = ref(false);
 const select = ref(false);
 const playerDom = ref();
+const imageDom = ref();
 let plugins: any = [];
 let scale = 1;
 let moveXPercent = 0;
@@ -64,6 +65,7 @@ const selectThis = () => {
   select.value = !select.value;
   store.$state.currentWidget = id;
 };
+const cssFullScreen = ref(false);
 let player: null | Player = null;
 onMounted(() => {
   box.value.onmousemove = () => {
@@ -118,116 +120,7 @@ onMounted(() => {
         currentTime: player?.currentTime,
       });
     });
-    mitter.on("scale-add", () => {
-      if (store.$state.currentWidget == id) {
-        let vDom = playerDom.value?.querySelector("video");
-        if (vDom) {
-          scale += 0.5;
-          if (scale > 5) {
-            scale = 5;
-          }
-          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-          if (Math.abs(moveXPercent) > maxPercent) {
-            moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
-          }
 
-          if (Math.abs(moveYPercent) > maxPercent) {
-            moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
-          }
-          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
-          showAndAutoHide();
-        }
-      }
-    });
-    mitter.on("scale-reduce", () => {
-      if (store.$state.currentWidget == id) {
-        let vDom = playerDom.value?.querySelector("video");
-        if (vDom) {
-          scale -= 0.5;
-          if (scale < 1) scale = 1;
-          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-          if (Math.abs(moveXPercent) > maxPercent) {
-            moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
-          }
-
-          if (Math.abs(moveYPercent) > maxPercent) {
-            moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
-          }
-          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
-          showAndAutoHide();
-        }
-      }
-    });
-    mitter.on("move-up", () => {
-      if (store.$state.currentWidget == id) {
-        let vDom = playerDom.value?.querySelector("video");
-        if (vDom) {
-          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-          moveYPercent++;
-          if (moveYPercent > maxPercent) {
-            moveYPercent = maxPercent;
-          }
-          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-          showAndAutoHide();
-        }
-      }
-    });
-    mitter.on("move-down", () => {
-      if (store.$state.currentWidget == id) {
-        let vDom = playerDom.value?.querySelector("video");
-        if (vDom) {
-          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-          moveYPercent--;
-          if (moveYPercent < -maxPercent) {
-            moveYPercent = -maxPercent;
-          }
-          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-          showAndAutoHide();
-        }
-      }
-    });
-
-    mitter.on("move-left", () => {
-      if (store.$state.currentWidget == id) {
-        let vDom = playerDom.value?.querySelector("video");
-        if (vDom) {
-          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-          moveXPercent++;
-          if (moveXPercent > maxPercent) {
-            moveXPercent = maxPercent;
-          }
-          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-          showAndAutoHide();
-        }
-      }
-    });
-    mitter.on("move-right", () => {
-      if (store.$state.currentWidget == id) {
-        let vDom = playerDom.value?.querySelector("video");
-        if (vDom) {
-          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-          moveXPercent--;
-          if (moveXPercent < -maxPercent) {
-            moveXPercent = -maxPercent;
-          }
-          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-          showAndAutoHide();
-        }
-      }
-    });
-    mitter.on("full-screen", () => {
-      if (store.$state.currentWidget == id) {
-        try {
-          if (player?.cssfullscreen) {
-            player.exitCssFullscreen();
-          } else {
-            player?.getCssFullscreen();
-          }
-        } catch (e) {
-          console.log("full screen error", e);
-        }
-      }
-    });
     mitter.on("setAllMute", (value: boolean) => {
       if (player) {
         player.muted = value;
@@ -243,11 +136,7 @@ onMounted(() => {
         player.pause();
       }
     });
-    mitter.on("duration-active", (activeId: string) => {
-      if (activeId == id) {
-        select.value = true;
-      }
-    });
+
     mitter.on("reload-video", () => {
       if (store.$state.currentWidget == id) {
         player?.reload();
@@ -267,7 +156,136 @@ onMounted(() => {
   } else if (isText(mimeType)) {
   }
 });
+function getCurrentDom() {
+  if (/^video/.test(mimeType)) {
+    return playerDom.value?.querySelector("video");
+  } else if (/^image/.test(mimeType)) {
+    return imageDom.value?.querySelector("img");
+  }
+}
+mitter.on("scale-add", () => {
+  if (store.$state.currentWidget == id) {
+    let vDom = getCurrentDom();
+    if (vDom) {
+      scale += 0.5;
+      if (scale > 5) {
+        scale = 5;
+      }
+      let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+      if (Math.abs(moveXPercent) > maxPercent) {
+        moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
+      }
 
+      if (Math.abs(moveYPercent) > maxPercent) {
+        moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
+      }
+      vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+      showAndAutoHide();
+    }
+  }
+});
+mitter.on("scale-reduce", () => {
+  if (store.$state.currentWidget == id) {
+    let vDom = getCurrentDom();
+    if (vDom) {
+      scale -= 0.5;
+      if (scale < 1) scale = 1;
+      let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+      if (Math.abs(moveXPercent) > maxPercent) {
+        moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
+      }
+
+      if (Math.abs(moveYPercent) > maxPercent) {
+        moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
+      }
+      vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+      showAndAutoHide();
+    }
+  }
+});
+mitter.on("move-up", () => {
+  if (store.$state.currentWidget == id) {
+    let vDom = getCurrentDom();
+    if (vDom) {
+      let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+      moveYPercent++;
+      if (moveYPercent > maxPercent) {
+        moveYPercent = maxPercent;
+      }
+      vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      showAndAutoHide();
+    }
+  }
+});
+mitter.on("move-down", () => {
+  if (store.$state.currentWidget == id) {
+    let vDom = getCurrentDom();
+    if (vDom) {
+      let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+      moveYPercent--;
+      if (moveYPercent < -maxPercent) {
+        moveYPercent = -maxPercent;
+      }
+      vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      showAndAutoHide();
+    }
+  }
+});
+
+mitter.on("move-left", () => {
+  if (store.$state.currentWidget == id) {
+    let vDom = getCurrentDom();
+    if (vDom) {
+      let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+      moveXPercent++;
+      if (moveXPercent > maxPercent) {
+        moveXPercent = maxPercent;
+      }
+      vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      showAndAutoHide();
+    }
+  }
+});
+mitter.on("move-right", () => {
+  if (store.$state.currentWidget == id) {
+    let vDom = getCurrentDom();
+    if (vDom) {
+      let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+      moveXPercent--;
+      if (moveXPercent < -maxPercent) {
+        moveXPercent = -maxPercent;
+      }
+      vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+      showAndAutoHide();
+    }
+  }
+});
+mitter.on("reset-normal", () => {
+  if (store.$state.currentWidget == id) {
+    let vDom = getCurrentDom();
+    if (vDom) {
+      scale = 1;
+      vDom.style.transform = `scale(${scale}) translateX(0%) translateY(0%)`;
+      showAndAutoHide();
+    }
+  }
+});
+mitter.on("duration-active", (activeId: string) => {
+  if (activeId == id) {
+    select.value = true;
+    cssFullScreen.value = store.$state.cssFullScreen;
+  } else {
+    if (cssFullScreen.value) {
+      cssFullScreen.value = false;
+    }
+  }
+});
+mitter.on("full-screen", () => {
+  if (store.$state.currentWidget == id) {
+    cssFullScreen.value = !cssFullScreen.value;
+    store.$state.cssFullScreen = cssFullScreen.value;
+  }
+});
 function isText(mimeType: string) {
   const editableTextContentTypes = [
     "text/plain",
@@ -319,7 +337,7 @@ watch(
 );
 </script>
 <template>
-  <div class="box" @click="selectThis" ref="box">
+  <div class="box" @click="selectThis" ref="box" :class="{ cssFullScreen }">
     <div v-if="/^video/.test(mimeType)" class="" ref="playerDom"></div>
     <div v-else-if="/^image/.test(mimeType)" class="image-box" ref="imageDom">
       <img :src="url" :alt="name" />
@@ -376,6 +394,7 @@ watch(
 .image-box {
   width: 100%;
   height: 100%;
+  overflow: hidden;
   img {
     width: 100%;
     height: 100%;
@@ -396,5 +415,13 @@ watch(
   p {
     margin: 5px;
   }
+}
+.cssFullScreen {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  z-index: 3000;
 }
 </style>

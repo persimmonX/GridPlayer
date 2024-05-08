@@ -2,6 +2,7 @@ import { createPinia, defineStore } from "pinia";
 export const useStore = defineStore("main", {
   state: (): {
     currentWidget: null | undefined | string | number;
+    cssFullScreen: boolean;
     allMuted: boolean;
     allPause: boolean;
     configs: any;
@@ -10,6 +11,7 @@ export const useStore = defineStore("main", {
       currentWidget: null,
       allMuted: true,
       allPause: false,
+      cssFullScreen: false,
       configs: {
         list: [
           {
