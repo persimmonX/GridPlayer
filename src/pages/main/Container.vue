@@ -6,15 +6,12 @@ import { useStore } from "@/store";
 import throttle from "throttleit";
 import mitter from "@/store/bus";
 import _ from "lodash";
+
+const maxRowColumn = 12;
+
 class CustomEngine extends GridStackEngine {
   public override moveNode(node: GridStackNode, o: GridStackMoveOpts): boolean {
     //超出屏幕不移动 设置maxRow
-    if (layout.value == "freeStyle") {
-      this.maxRow = 12;
-      return super.moveNode(node, o);
-    } else {
-      this.maxRow = 0;
-    }
     return startDrag ? false : super.moveNode(node, o);
   }
 }
@@ -38,47 +35,35 @@ function layoutFill() {
     const column = Math.ceil(Math.sqrt(count));
     let row = Math.ceil(count / column);
     const spaceCount = row * column - count;
-    const winHeight = window.document.body.clientHeight;
+    const winHeight = gridStackDom.value.clientHeight;
     let all = <GridStackWidget[]>grid.save(false);
+    let cellHeight = winHeight / maxRowColumn;
+    let uw = Math.floor(maxRowColumn / column);
+    let uh = Math.floor(maxRowColumn / row);
+    grid.cellHeight(cellHeight);
     if (layout.value == "horizontal") {
       let start = 0;
       for (let i = 0; i < row; i++) {
         for (let j = 0; j < column; j++) {
           if (all[start]) {
-            all[start].y = i;
-            all[start].x = j;
-            all[start].h = 1;
+            all[start].y = i * uh;
+            all[start].x = j * uw;
+            all[start].h = uh;
             if (spaceCount && i == row - 1 && j == column - spaceCount - 1) {
-              all[start].w = spaceCount + 1;
+              all[start].w = (spaceCount + 1) * uw;
             } else {
-              all[start].w = 1;
+              all[start].w = uw;
             }
             start++;
           }
         }
       }
-
-      grid.float(false);
-      grid.cellHeight(winHeight / row);
       grid.load(all);
-      grid.column(column, "compact");
       grid.enableResize(false);
       grid.compact();
     } else if (layout.value == "freeStyle") {
-      //自由布局
-      let initColumn = 12;
-      let tw = Math.floor(initColumn / column);
-      let cellHeight = winHeight / initColumn;
-      all.forEach((item: any) => {
-        item.w = tw;
-        item.h = Math.floor(initColumn / row);
-      });
-      //重新计算行高
-      grid.float(true);
-      grid.cellHeight(cellHeight);
-      grid.column(initColumn);
-      grid.load(all);
       grid.enableResize(true);
+      grid.load(all);
       grid.compact();
     } else {
       //倒数第二行最后一位
@@ -86,23 +71,20 @@ function layoutFill() {
       for (let i = 0; i < row; i++) {
         for (let j = 0; j < column; j++) {
           if (all[start]) {
-            all[start].y = i;
-            all[start].x = j;
-            all[start].w = 1;
+            all[start].y = i * uh;
+            all[start].x = j * uw;
+            all[start].w = uw;
             //倒数
             if (spaceCount && i == row - spaceCount - 1 && j == column - 1) {
-              all[start].h = spaceCount + 1;
+              all[start].h = (spaceCount + 1) * uh;
             } else {
-              all[start].h = 1;
+              all[start].h = uh;
             }
             start++;
           }
         }
       }
-      grid.float(false);
-      grid.cellHeight(winHeight / row);
-      grid.load(all, true);
-      grid.column(column, "compact");
+      grid.load(all);
       grid.enableResize(false);
       grid.compact();
     }
@@ -203,8 +185,8 @@ const addWidgets = (
     const count = widgets.value.length;
     const column = Math.ceil(Math.sqrt(count));
     let row = Math.ceil(count / column);
-    const winHeight = window.document.body.clientHeight;
-    const winWidth = window.document.body.clientWidth;
+    const winHeight = gridStackDom.value.clientHeight;
+    const winWidth = gridStackDom.value.clientWidth;
     if (layout.value == "horizontal") {
       grid?.float(false);
       grid?.cellHeight(winHeight / row);
@@ -272,7 +254,8 @@ onMounted(() => {
     margin: "0px",
     cellHeight: winHeight,
     animate: true,
-    column: 1,
+    column: 12,
+    maxRow: 12,
     float: true,
     sizeToContent: false,
     disableResize: true,
@@ -331,7 +314,11 @@ onMounted(() => {
   window.ipcRenderer.on("removeWidget", removeWidget);
   window.addEventListener("resize", () => {
     //重新计算cellHeight
-    throttleLayout();
+    if (layout.value != "freeStyle") {
+      throttleLayout();
+    } else {
+      throttleLayout();
+    }
   });
   window.ipcRenderer.on("getAllWidgetCount", _event => {
     let count = grid?.getGridItems().length;
