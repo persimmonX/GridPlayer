@@ -13,6 +13,7 @@ import _ from "lodash";
 import store from "./store";
 import mime from "mime";
 import * as prettier from "prettier";
+import { setupTitlebar, attachTitlebarToWindow } from "custom-electron-titlebar/main";
 // import * as prettierPluginBabel from "prettier/plugins/babel.mjs";
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
@@ -54,7 +55,7 @@ let template: Array<MenuItemConstructorOptions> = [
     ],
   },
 ];
-
+setupTitlebar();
 const menus = Menu.buildFromTemplate(template);
 // Menu.setApplicationMenu(null);
 function findObjectsWithAccelerator(arr) {
@@ -524,7 +525,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
       icon: path.join(__dirname, "../public/basic/128-monitor.png"),
       click: () => {
         // 打开设置弹窗
-        configPopup = createPopupWindow("config", "设置", 800, 600);
+        configPopup = createPopupWindow("config", "设置", 800, 600, false);
       },
     },
     {
@@ -612,13 +613,14 @@ function addFile() {
       console.log(err);
     });
 }
-function createPopupWindow(hashPath: string, title?: string, width = 500, height = 400) {
+function createPopupWindow(hashPath: string, title?: string, width = 500, height = 400, resizable = true) {
   const popup = new BrowserWindow({
     width: width,
     height: height,
     title: title,
     show: false,
-    // resizable: false,
+    resizable: resizable,
+    titleBarStyle:"hidden",
     icon: path.join(__dirname, "../public/main/png/16x16.png"),
     backgroundColor: "#f8f8f8",
     webPreferences: {
@@ -626,6 +628,7 @@ function createPopupWindow(hashPath: string, title?: string, width = 500, height
       preload: path.join(__dirname, "preload.mjs"),
     },
   });
+
   popup.once("ready-to-show", () => {
     popup.show();
   });
@@ -649,6 +652,8 @@ function createWindow() {
     title: "GridPlayer",
     icon: path.join(__dirname, "../public/main/png/16x16.png"),
     focusable: false,
+    titleBarStyle: "hidden",
+    // titleBarOverlay: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -657,7 +662,7 @@ function createWindow() {
     },
   });
   win.setFocusable(true);
-
+  attachTitlebarToWindow(win);
   contextMenu = Menu.buildFromTemplate(getMainWindowPopup());
   win.webContents.on("context-menu", (e, params) => {
     //判断是否在播放 添加全部=>操作指令

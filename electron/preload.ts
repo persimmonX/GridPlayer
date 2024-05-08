@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from "electron";
+import { Titlebar, Color } from "custom-electron-titlebar";
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld("ipcRenderer", {
@@ -24,4 +25,10 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
   getStoreValue(key: string) {
     return ipcRenderer.invoke("get-store-value", key);
   },
+});
+window.addEventListener("DOMContentLoaded", () => {
+  // Title bar implementation
+  new Titlebar({
+    backgroundColor: "#4d4d4d",
+  });
 });

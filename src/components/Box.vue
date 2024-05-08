@@ -372,9 +372,10 @@ watch(
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  border: 5px solid rgba(173, 170, 170, 0.5);
+  border: 5px solid rgba(173, 170, 170, 0.6);
   z-index: 1000;
-  color: rgb(219, 215, 215);
+  /*color: rgb(219, 215, 215);*/
+  color: white;
   pointer-events: none;
 }
 .title {
@@ -418,9 +419,10 @@ watch(
 }
 .cssFullScreen {
   position: fixed;
-  width: 100vw;
-  height: 100vh;
-  top: 0;
+  width: 100%;
+  /*electron-titlebar会占据30px顶部高度*/
+  height: calc(100% - 30px);
+  top: 30px;
   left: 0;
   z-index: 3000;
 }

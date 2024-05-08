@@ -120,10 +120,11 @@ const cancel = () => {
     box-sizing: border-box;
     display: flex;
     .tabs {
-      width: 240px;
+      width: 200px;
       height: 100%;
       background-color: white;
       padding: 10px;
+      padding-right: 0px;
       box-sizing: border-box;
       user-select: none;
       .level-1 {

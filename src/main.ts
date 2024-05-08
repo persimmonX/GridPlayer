@@ -1,6 +1,6 @@
 import { createApp } from "vue";
 import "./styles/style.css";
-import "./styles/resetxg.scss";
+import "./styles/index.scss";
 import App from "./App.vue";
 import "gridstack/dist/gridstack.min.css";
 import "gridstack/dist/gridstack-extra.css";

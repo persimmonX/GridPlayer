@@ -489,7 +489,9 @@ onBeforeUnmount(() => {
 .empty {
   width: 100%;
   height: 100%;
-  line-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   text-align: center;
   font-size: 36px;
   color: #999;

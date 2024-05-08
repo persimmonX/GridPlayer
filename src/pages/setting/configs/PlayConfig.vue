@@ -73,5 +73,9 @@ onMounted(() => {
     left: 340px;
     top: 0px;
   }
+  input[type=file] {
+    max-width: 200px;
+    overflow: hidden;
+  }
 }
 </style>
