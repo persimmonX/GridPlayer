@@ -4,8 +4,18 @@
   margin-bottom: 5px;
   select,
   label,
-  input {
+  input,
+  .station-label {
     margin-right: 5px;
     font-size: 12px;
+  }
+  .station-label {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+  }
+  select,
+  input[type="file"] {
+    height: 24px;
   }
 }

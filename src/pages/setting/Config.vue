@@ -25,6 +25,13 @@ const init = {
           component: markRaw(PlayConfig),
           attr: {
             layout: "vertical", //"horizontal" | "vertical" | "freeStyle"
+            background: {
+              use: false,
+              url: "",
+              size: "cover",
+              imageName: "",
+              repeat: "no-repeat",
+            },
           },
         },
       ],

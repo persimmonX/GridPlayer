@@ -6,6 +6,7 @@ import HlsJsPlugin from "xgplayer-hls.js";
 import FlvJsPlugin from "xgplayer-flv.js";
 import mitter from "@/store/bus";
 import debounce from "debounce";
+import AceEditor from "./AceEditor.vue";
 import _ from "lodash";
 
 const props = defineProps({
@@ -15,6 +16,16 @@ const props = defineProps({
     default: "",
   },
   url: {
+    type: String,
+    required: true,
+    default: "",
+  },
+  fileType: {
+    type: String,
+    required: false,
+    default: "",
+  },
+  mimeType: {
     type: String,
     required: true,
     default: "",
@@ -31,10 +42,9 @@ const props = defineProps({
   },
 });
 
-const { id, url, name, xgOption } = props;
+const { id, url, name, xgOption, mimeType } = props;
 const store = useStore();
 const box = ref();
-
 const active = ref(false);
 const select = ref(false);
 const playerDom = ref();
@@ -66,194 +76,210 @@ onMounted(() => {
     active.value = false;
     select.value = false;
   };
-  if (url?.endsWith(".m3u8")) {
-    plugins.push(HlsJsPlugin);
-  } else if (url?.endsWith(".flv")) {
-    plugins.push(FlvJsPlugin);
-  }
-  const defaultMute = _.deepFind(store.$state.configs.list, "startMute");
-  const loop = _.deepFind(store.$state.configs.list, "loop");
-  const autoplay = _.deepFind(store.$state.configs.list, "startMute");
-  const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
-  player = new Player({
-    el: playerDom.value,
-    url: url,
-    autoplay: autoplay,
-    autoplayMuted: defaultMute,
-    lang: "zh-cn",
-    width: "100%",
-    height: "100%",
-    mode: "cors",
-    startTime: xgOption?.currentTime || startTime,
-    loading: false,
-    loop: loop,
-    download: true,
-    closeVideoClick: true,
-    plugins: plugins,
-    videoFillMode: "cover",
-    cssFullscreen: false,
-    commonStyle: {
-      playedColor: "green",
-      sliderBtnStyle: {
-        height: "20px",
-      },
-    },
-    isLive: false,
-    // plugins: [Mp4Plugin],
-  });
-  mitter.on("get-xg-option", callback => {
-    callback({
-      id,
-      currentTime: player?.currentTime,
-    });
-  });
-  mitter.on("scale-add", () => {
-    if (store.$state.currentWidget == id) {
-      let vDom = playerDom.value?.querySelector("video");
-      if (vDom) {
-        scale += 0.5;
-        if (scale > 5) {
-          scale = 5;
-        }
-        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-        if (Math.abs(moveXPercent) > maxPercent) {
-          moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
-        }
-
-        if (Math.abs(moveYPercent) > maxPercent) {
-          moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
-        }
-        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
-        showAndAutoHide();
-      }
+  if (/^video/.test(mimeType)) {
+    if (url?.endsWith(".m3u8")) {
+      plugins.push(HlsJsPlugin);
+    } else if (url?.endsWith(".flv")) {
+      plugins.push(FlvJsPlugin);
     }
-  });
-  mitter.on("scale-reduce", () => {
-    if (store.$state.currentWidget == id) {
-      let vDom = playerDom.value?.querySelector("video");
-      if (vDom) {
-        scale -= 0.5;
-        if (scale < 1) scale = 1;
-        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-        if (Math.abs(moveXPercent) > maxPercent) {
-          moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
-        }
-
-        if (Math.abs(moveYPercent) > maxPercent) {
-          moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
-        }
-        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
-        showAndAutoHide();
-      }
-    }
-  });
-  mitter.on("move-up", () => {
-    if (store.$state.currentWidget == id) {
-      let vDom = playerDom.value?.querySelector("video");
-      if (vDom) {
-        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-        moveYPercent++;
-        if (moveYPercent > maxPercent) {
-          moveYPercent = maxPercent;
-        }
-        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-        showAndAutoHide();
-      }
-    }
-  });
-  mitter.on("move-down", () => {
-    if (store.$state.currentWidget == id) {
-      let vDom = playerDom.value?.querySelector("video");
-      if (vDom) {
-        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-        moveYPercent--;
-        if (moveYPercent < -maxPercent) {
-          moveYPercent = -maxPercent;
-        }
-        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-        showAndAutoHide();
-      }
-    }
-  });
-
-  mitter.on("move-left", () => {
-    if (store.$state.currentWidget == id) {
-      let vDom = playerDom.value?.querySelector("video");
-      if (vDom) {
-        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-        moveXPercent++;
-        if (moveXPercent > maxPercent) {
-          moveXPercent = maxPercent;
-        }
-        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-        showAndAutoHide();
-      }
-    }
-  });
-  mitter.on("move-right", () => {
-    if (store.$state.currentWidget == id) {
-      let vDom = playerDom.value?.querySelector("video");
-      if (vDom) {
-        let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
-        moveXPercent--;
-        if (moveXPercent < -maxPercent) {
-          moveXPercent = -maxPercent;
-        }
-        vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
-        showAndAutoHide();
-      }
-    }
-  });
-  mitter.on("full-screen", () => {
-    if (store.$state.currentWidget == id) {
-      try {
-        if (player?.cssfullscreen) {
-          player.exitCssFullscreen();
-        } else {
-          player?.getCssFullscreen();
-        }
-      } catch (e) {
-        console.log("full screen error", e);
-      }
-    }
-  });
-});
-mitter.on("setAllMute", (value: boolean) => {
-  if (player) {
-    player.muted = value;
-  }
-});
-mitter.on("setAllStart", (value: boolean) => {
-  if (player && value) {
-    player.play();
-  }
-});
-mitter.on("setAllPause", (value: boolean) => {
-  if (player && value) {
-    player.pause();
-  }
-});
-mitter.on("duration-active", (activeId: string) => {
-  if (activeId == id) {
-    select.value = true;
-  }
-});
-mitter.on("reload-video", () => {
-  if (store.$state.currentWidget == id) {
-    player?.reload();
+    const defaultMute = _.deepFind(store.$state.configs.list, "startMute");
+    const loop = _.deepFind(store.$state.configs.list, "loop");
+    const autoplay = _.deepFind(store.$state.configs.list, "startMute");
     const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
-    if (startTime && player) {
-      player.currentTime = startTime;
-    }
+    player = new Player({
+      el: playerDom.value,
+      url: url,
+      autoplay: autoplay,
+      autoplayMuted: defaultMute,
+      lang: "zh-cn",
+      width: "100%",
+      height: "100%",
+      mode: "cors",
+      startTime: xgOption?.currentTime || startTime,
+      loading: false,
+      loop: loop,
+      download: true,
+      closeVideoClick: true,
+      plugins: plugins,
+      videoFillMode: "cover",
+      cssFullscreen: false,
+      commonStyle: {
+        playedColor: "green",
+        sliderBtnStyle: {
+          height: "20px",
+        },
+      },
+      isLive: false,
+      // plugins: [Mp4Plugin],
+    });
+    mitter.on("get-xg-option", callback => {
+      callback({
+        id,
+        currentTime: player?.currentTime,
+      });
+    });
+    mitter.on("scale-add", () => {
+      if (store.$state.currentWidget == id) {
+        let vDom = playerDom.value?.querySelector("video");
+        if (vDom) {
+          scale += 0.5;
+          if (scale > 5) {
+            scale = 5;
+          }
+          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+          if (Math.abs(moveXPercent) > maxPercent) {
+            moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
+          }
+
+          if (Math.abs(moveYPercent) > maxPercent) {
+            moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
+          }
+          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+          showAndAutoHide();
+        }
+      }
+    });
+    mitter.on("scale-reduce", () => {
+      if (store.$state.currentWidget == id) {
+        let vDom = playerDom.value?.querySelector("video");
+        if (vDom) {
+          scale -= 0.5;
+          if (scale < 1) scale = 1;
+          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+          if (Math.abs(moveXPercent) > maxPercent) {
+            moveXPercent = moveXPercent <= 0 ? maxPercent : -maxPercent;
+          }
+
+          if (Math.abs(moveYPercent) > maxPercent) {
+            moveYPercent = moveYPercent <= 0 ? maxPercent : -maxPercent;
+          }
+          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}px) translateY(${moveYPercent}%)`;
+          showAndAutoHide();
+        }
+      }
+    });
+    mitter.on("move-up", () => {
+      if (store.$state.currentWidget == id) {
+        let vDom = playerDom.value?.querySelector("video");
+        if (vDom) {
+          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+          moveYPercent++;
+          if (moveYPercent > maxPercent) {
+            moveYPercent = maxPercent;
+          }
+          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+          showAndAutoHide();
+        }
+      }
+    });
+    mitter.on("move-down", () => {
+      if (store.$state.currentWidget == id) {
+        let vDom = playerDom.value?.querySelector("video");
+        if (vDom) {
+          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+          moveYPercent--;
+          if (moveYPercent < -maxPercent) {
+            moveYPercent = -maxPercent;
+          }
+          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+          showAndAutoHide();
+        }
+      }
+    });
+
+    mitter.on("move-left", () => {
+      if (store.$state.currentWidget == id) {
+        let vDom = playerDom.value?.querySelector("video");
+        if (vDom) {
+          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+          moveXPercent++;
+          if (moveXPercent > maxPercent) {
+            moveXPercent = maxPercent;
+          }
+          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+          showAndAutoHide();
+        }
+      }
+    });
+    mitter.on("move-right", () => {
+      if (store.$state.currentWidget == id) {
+        let vDom = playerDom.value?.querySelector("video");
+        if (vDom) {
+          let maxPercent = Math.floor(((scale - 1) / 2 / scale) * 100);
+          moveXPercent--;
+          if (moveXPercent < -maxPercent) {
+            moveXPercent = -maxPercent;
+          }
+          vDom.style.transform = `scale(${scale}) translateX(${moveXPercent}%) translateY(${moveYPercent}%)`;
+          showAndAutoHide();
+        }
+      }
+    });
+    mitter.on("full-screen", () => {
+      if (store.$state.currentWidget == id) {
+        try {
+          if (player?.cssfullscreen) {
+            player.exitCssFullscreen();
+          } else {
+            player?.getCssFullscreen();
+          }
+        } catch (e) {
+          console.log("full screen error", e);
+        }
+      }
+    });
+    mitter.on("setAllMute", (value: boolean) => {
+      if (player) {
+        player.muted = value;
+      }
+    });
+    mitter.on("setAllStart", (value: boolean) => {
+      if (player && value) {
+        player.play();
+      }
+    });
+    mitter.on("setAllPause", (value: boolean) => {
+      if (player && value) {
+        player.pause();
+      }
+    });
+    mitter.on("duration-active", (activeId: string) => {
+      if (activeId == id) {
+        select.value = true;
+      }
+    });
+    mitter.on("reload-video", () => {
+      if (store.$state.currentWidget == id) {
+        player?.reload();
+        const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
+        if (startTime && player) {
+          player.currentTime = startTime;
+        }
+      }
+    });
+    mitter.on("reload-video-all", () => {
+      player?.reload();
+      const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
+      if (startTime && player) {
+        player.currentTime = startTime;
+      }
+    });
+  } else if (isText(mimeType)) {
   }
 });
-mitter.on("reload-video-all", () => {
-  player?.reload();
-  const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
-  if (startTime && player) {
-    player.currentTime = startTime;
-  }
-});
+
+function isText(mimeType: string) {
+  const editableTextContentTypes = [
+    "text/plain",
+    "text/html",
+    "text/css",
+    "application/xml", // 或者 'text/xml'
+    "application/json",
+    "text/javascript", // 或者 'application/javascript'
+  ];
+  return editableTextContentTypes.includes(mimeType);
+}
+
 watch(select, value => {
   if (value) {
     showAndAutoHide();
@@ -294,7 +320,17 @@ watch(
 </script>
 <template>
   <div class="box" @click="selectThis" ref="box">
-    <div class="" ref="playerDom"></div>
+    <div v-if="/^video/.test(mimeType)" class="" ref="playerDom"></div>
+    <div v-else-if="/^image/.test(mimeType)" class="image-box" ref="imageDom">
+      <img :src="url" :alt="name" />
+    </div>
+    <div class="text-box" v-else-if="isText(mimeType)">
+      <AceEditor :url="url" :name="name" :fileType="fileType" :mimeType="mimeType"></AceEditor>
+    </div>
+    <div class="other-type" v-else>
+      <p>不支持的文件类型</p>
+      <p>文件名:{{ name }}.{{ fileType }},类型:{{ mimeType }}</p>
+    </div>
     <div v-if="active" class="activeBox">
       <div class="title">{{ name }}</div>
     </div>
@@ -336,5 +372,29 @@ watch(
   left: 0px;
   right: 0px;
   margin: auto;
+}
+.image-box {
+  width: 100%;
+  height: 100%;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+.text-box {
+  width: 100%;
+  height: 100%;
+}
+.other-type {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  p {
+    margin: 5px;
+  }
 }
 </style>

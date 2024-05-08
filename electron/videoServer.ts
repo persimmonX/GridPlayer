@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { separateDomainAndPath } from "./util/index";
 import { v4 as uuidv4 } from "uuid";
+import mime from "mime";
 const require = createRequire(import.meta.url);
 const express = require("express");
 const path = require("path");
@@ -100,8 +101,32 @@ app.get("/video-stream/:videoId", (req: any, res: any) => {
   });
   // 使用ffmpeg将视频转换为HTTP流
 });
+app.get("/static-source/:fileExtension", (req: any, res: any) => {
+  const fileExtension = req.params.fileExtension;
+  const temp = fileExtension.split(".");
+  let mimeText = mime.getType(temp[1]);
+  const fileId = temp[0];
+  const filePath = pathList.get(fileId);
+  fs.access(filePath, fs.constants.F_OK, err => {
+    if (err) {
+      // 如果文件不存在或其他错误，返回 404 错误
+      res.status(404).send("File not found");
+    } else {
+      const head = {
+        "Content-Type": `${mimeText}`,
+        "Access-Control-Allow-Origin": "*",
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(filePath).pipe(res);
+    }
+  });
+  // 使用ffmpeg将视频转换为HTTP流
+});
 
 const pathList = new Map();
+function getMIMEType(fileExtension: string): any {
+  return mime.getType(fileExtension);
+}
 const addPlayPath = (filePath: string, originId?: string) => {
   return new Promise((resolve, reject) => {
     const addWidget = port => {
@@ -114,7 +139,13 @@ const addPlayPath = (filePath: string, originId?: string) => {
       // 如果你想要获取不带扩展名的文件名，可以这样做：
       let name = path.basename(filePath, path.extname(filePath));
       pathList.set(id, filePath);
-      resolve({ id, url, fileName, fileExtension, fileType, name, originId });
+      let mimeType = getMIMEType(fileExtension);
+      if (/^video/.test(mimeType)) {
+        url = `http://127.0.0.1:${port}/video-stream/${id}`;
+      } else {
+        url = `http://127.0.0.1:${port}/static-source/${id}.${fileType}`;
+      }
+      resolve({ id, url, fileName, fileExtension, mimeType, fileType, name, originId });
     };
     findAvailablePort(startPort, 180000, (err, port) => {
       if (err) {
@@ -158,14 +189,14 @@ const addPlayLink = (link: string, originId?: string) => {
       let fileExtension = link;
       let name = link;
       let fileType = "link";
-
+      let mimeType = getMIMEType(fileExtension);
       let middle = createProxyMiddleware({
         target: domain,
         changeOrigin: true,
       });
       app.use(`/proxy-link`, middle);
 
-      resolve({ id, url, fileName, fileExtension, fileType, name, originId });
+      resolve({ id, url, fileName, fileExtension, fileType, mimeType, name, originId });
     });
   });
 };

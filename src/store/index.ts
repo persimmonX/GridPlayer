@@ -21,6 +21,13 @@ export const useStore = defineStore("main", {
                 title: "播放器",
                 attr: {
                   layout: "vertical", //"horizontal" | "vertical" | "freeStyle"
+                  background: {
+                    use: false,
+                    url: "",
+                    size: "cover",
+                    imageName: "",
+                    repeat: "no-repeat",
+                  },
                 },
               },
             ],

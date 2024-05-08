@@ -1,19 +1,7 @@
 <script setup lang="ts">
-import { watch } from "vue";
 const props = defineProps({
   config: { type: Object, default: {}, required: true },
 });
-watch(
-  () => props.config.attr.setStartTime,
-  () => {
-    if (!props.config.attr.setStartTime) {
-      props.config.attr.startTime = 0;
-    }
-  },
-  {
-    immediate: true,
-  }
-);
 </script>
 <template>
   <div class="items">

@@ -19,12 +19,14 @@ class CustomEngine extends GridStackEngine {
   }
 }
 const store = useStore();
+const backgroundUse = ref(false);
 const originList: { id: string; originPath: string }[] = [];
 
 GridStack.registerEngine(CustomEngine);
 let grid: GridStack | null = null;
 let currentWidgetId: any = ref("");
 const gridStackDom = ref();
+const emptyDom = ref();
 const widgets: Ref<Array<any>> = ref([]);
 let startDrag = false;
 let layout: Ref<"horizontal" | "vertical" | "freeStyle"> = ref("vertical");
@@ -113,13 +115,15 @@ const addWidget = (
     id: string;
     name: string;
     url: string;
+    mimeType: string;
+    fileType?: string;
     originPath: string;
     gridStackOption?: { x: number; y: number; h: number; w: number };
     xgOption?: { currentTime: number };
     layout?: "horizontal" | "vertical" | "freeStyle";
   }
 ) => {
-  const { id, name, url, originPath, gridStackOption, xgOption, layout: layoutStyle } = option;
+  const { id, name, url, originPath, gridStackOption, xgOption, layout: layoutStyle, mimeType, fileType } = option;
   //检查id是否已存在
   if (layoutStyle) {
     layout.value = layoutStyle;
@@ -138,6 +142,8 @@ const addWidget = (
     url,
     originPath,
     xgOption,
+    mimeType,
+    fileType,
     content: "",
   };
   widgets.value.push(node);
@@ -255,6 +261,13 @@ function isPointInsideElement(el, point) {
 onMounted(() => {
   let winHeight = document.body.clientHeight;
   layout.value = _.deepFind(store.$state.configs.list, "layout", layout.value);
+  let background = _.deepFind(store.$state.configs.list, "background", {});
+  if (background.use && background.url) {
+    backgroundUse.value = true;
+    emptyDom.value.style.backgroundImage = `url(${background.url})`;
+    emptyDom.value.style.backgroundSize = background.size;
+    emptyDom.value.style.backgroundRepeat = background.repeat;
+  }
   grid = GridStack.init({
     margin: "0px",
     cellHeight: winHeight,
@@ -447,11 +460,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="widgets.length == 0" class="empty">Ctrl+A/右键添加/拖拽文件</div>
+  <div v-if="widgets.length == 0" class="empty" ref="emptyDom" @dragover="dragOver($event)" @drop="drop($event)">
+    <div v-if="!backgroundUse">Ctrl+A/右键添加/拖拽文件</div>
+  </div>
   <div v-show="widgets.length > 0" class="grid-stack" @dragover="dragOver($event)" @drop="drop($event)" ref="gridStackDom">
     <div class="grid-stack-item" v-for="w in widgets" :gs-x="w.x" :gs-y="w.y" :gs-w="w.w" :gs-h="w.h" :gs-id="w.id" :id="w.id" :key="w.id">
       <div class="grid-stack-item-content">
-        <Box :id="w.id" :name="w.name" :url="w.url" :xg-option="w.xgOption" />
+        <Box :id="w.id" :name="w.name" :url="w.url" :xg-option="w.xgOption" :mimeType="w.mimeType" :fileType="w.fileType" />
       </div>
     </div>
   </div>

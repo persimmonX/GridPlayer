@@ -11,6 +11,9 @@ import { GridStackWidget } from "gridstack";
 import playList from "./store/PlayList";
 import _ from "lodash";
 import store from "./store";
+import mime from "mime";
+import * as prettier from "prettier";
+// import * as prettierPluginBabel from "prettier/plugins/babel.mjs";
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -76,14 +79,14 @@ function findObjectsWithAccelerator(arr) {
 }
 function doSelectPlayByProtocol(urlOrPath, gridStackOption?: GridStackWidget, xgOption?: any, layout?: string) {
   if (isNetworkUrl(urlOrPath)) {
-    return addPlayLink(urlOrPath).then(({ url, id, name }: any) => {
+    return addPlayLink(urlOrPath).then(({ url, id, name, mimeType, fileType }: any) => {
       playHistory.add(urlOrPath);
-      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption, layout });
+      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption, layout, mimeType, fileType });
     });
   } else {
-    return addPlayPath(urlOrPath).then(({ url, id, name }: any) => {
+    return addPlayPath(urlOrPath).then(({ url, id, name, fileType, mimeType }: any) => {
       playHistory.add(urlOrPath);
-      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption, layout });
+      win?.webContents.send("addWidget", { id, originPath: urlOrPath, name, url, gridStackOption, xgOption, layout, fileType, mimeType });
     });
   }
 }
@@ -564,13 +567,30 @@ function getMainWindowPopup(type?: "played" | "all"): any {
   }
 }
 function addFile() {
+  let allImage = ["image/jpeg", "image/png", "image/gif", "image/bmp", "image/tiff", "image/webp"].reduce(
+    (current, next) => {
+      let types = mime.getAllExtensions(next) || [];
+      let arr = Array.from(types);
+      return arr ? current.concat(arr) : current;
+    },
+    <string[]>[]
+  );
+  let allVideo = ["video/mp4", "image/webm", "image/ogg", "video/x-msvideo", "video/quicktime", "application/vnd.apple.mpegurl", "video/x-flv", "video/x-matroska"].reduce(
+    (current, next) => {
+      let types = mime.getAllExtensions(next) || [];
+      let arr = Array.from(types);
+      return arr ? current.concat(arr) : current;
+    },
+    <string[]>[]
+  );
   dialog
     .showOpenDialog({
       title: "选择文件",
       properties: ["openFile", "multiSelections"],
       filters: [
-        { name: "Text Files", extensions: ["mp4", ".mkv", ".avi", ".hls", ".png", "jpeg", ".jpg", ".m3u8", ".flv"] },
-        { name: "All Files", extensions: ["*"] },
+        { name: "所有", extensions: ["*"] },
+        // { name: "视频", extensions: allVideo },
+        // { name: "图片", extensions: allImage },
       ],
     })
     .then(result => {
@@ -878,6 +898,15 @@ ipcMain.handle("set-store-value", (_e, key: string, value: any) => {
 });
 ipcMain.on("close-config-popup", _e => {
   configPopup?.close();
+});
+ipcMain.handle("parse-text", (_e, text, parser) => {
+  try {
+    return prettier.format(text, {
+      parser: parser,
+    });
+  } catch (e) {
+    return text;
+  }
 });
 
 //changeToPNG

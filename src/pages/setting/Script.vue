@@ -7,6 +7,7 @@ const editorDom = ref();
 const resultDom = ref();
 const resultValue = ref([]);
 let editor: null | Ace.Ace.Editor = null;
+
 onMounted(() => {
   editor = Ace.edit(editorDom.value);
   editor.getSession().setMode(new mode.Mode()); // 设置模式（例如，JavaScript）
@@ -27,15 +28,6 @@ function main() {
 }`); // 设置初始值
     }
   });
-
-  editor.setValue(`/**
- * 执行脚本
- * @returns path[] | Promise
- */
-function main() {
-  //return new Promise(resolve=>{})
-  return [];
-}`); // 设置初始值
 
   window.ipcRenderer.on("history-script", (_e, script: string) => {
     editor?.setValue(script);
