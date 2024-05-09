@@ -90,7 +90,53 @@ function layoutFill() {
     }
   }
 }
-
+function getNext(x, y, w, h, maxW, maxH) {
+  if (h + 1 <= maxH && w + 1 <= maxW && grid?.isAreaEmpty(x, y, w + 1, h + 1)) {
+    return getNext(x, y, w + 1, h + 1, maxW, maxH);
+  } else if (h <= maxH && w + 1 <= maxW && grid?.isAreaEmpty(x, y, w + 1, h)) {
+    return getNext(x, y, w + 1, h, maxW, maxH);
+  } else if (h + 1 <= maxH && w <= maxW && grid?.isAreaEmpty(x, y, w, h + 1)) {
+    return getNext(x, y, w, h + 1, maxW, maxH);
+  }
+  return { x, y, w, h };
+}
+function getMaxSpaceArea() {
+  let all = <any>[];
+  for (let i = 0; i < maxRowColumn; i++) {
+    // if (result) break;
+    for (let j = 0; j < maxRowColumn; j++) {
+      const empty = grid?.isAreaEmpty(j, i, 1, 1);
+      if (empty) {
+        let w = 1;
+        let h = 1;
+        let result = getNext(j, i, w, h, maxRowColumn - j, maxRowColumn - i);
+        // break;
+        all.push({
+          result,
+          area: result.w * result.h,
+        });
+      }
+    }
+  }
+  all = all.sort((a, b) => b.area - a.area);
+  return all[0].result;
+}
+function getMaxArea() {
+  let all = <any>grid?.save();
+  if (all) {
+    let temp = all
+      .map(item => {
+        return {
+          origin: item,
+          area: item.w * item.h,
+        };
+      })
+      .sort((a, b) => {
+        return b.area - a.area;
+      });
+    return temp[0].origin;
+  }
+}
 const addWidget = (
   _event: any,
   option: {
@@ -114,10 +160,11 @@ const addWidget = (
     id: id,
     originPath: originPath,
   });
+
   let node = {
     id: id,
-    w: 1,
-    h: gridStackOption?.h,
+    w: gridStackOption?.w || 1,
+    h: gridStackOption?.h || 1,
     x: gridStackOption?.x || 0,
     y: gridStackOption?.y || 0,
     name,
@@ -128,6 +175,38 @@ const addWidget = (
     fileType,
     content: "",
   };
+  //freestyle可以调整大小,添加时尽量保持原来的位置,获取最大剩余空间进行填充
+  if (layout.value == "freeStyle") {
+    let checkNode = {
+      w: 1,
+      h: 1,
+      autoPosition: true,
+    };
+    if (grid?.willItFit(checkNode)) {
+      let result = getMaxSpaceArea();
+      _.assign(node, result);
+    } else {
+      //空间不够
+      let max = getMaxArea();
+      //获取当前已加载的最大的node 切割一半分配给新的窗口
+      if (max.w >= max.h) {
+        //切割宽度
+        max.w = max.w / 2;
+        node.w = max.w;
+        node.h = max.h;
+        node.x = max.x + node.w;
+        node.y = max.y;
+      } else {
+        max.h = max.h / 2;
+        node.h = max.h;
+        node.w = max.w;
+        node.x = max.x;
+        node.y = max.y + node.h;
+      }
+      grid?.update(`#${max.id}`, max);
+    }
+  }
+
   widgets.value.push(node);
   nextTick(() => {
     grid?.makeWidget(node.id);
@@ -161,8 +240,8 @@ const addWidgets = (
     });
     let node = {
       id: id,
-      w: gridStackOption?.w || 0,
-      h: gridStackOption?.h || 0,
+      w: gridStackOption?.w || 1,
+      h: gridStackOption?.h || 1,
       x: gridStackOption?.x || 0,
       y: gridStackOption?.y || 0,
       name,
@@ -254,8 +333,8 @@ onMounted(() => {
     margin: "0px",
     cellHeight: winHeight,
     animate: true,
-    column: 12,
-    maxRow: 12,
+    column: maxRowColumn,
+    maxRow: maxRowColumn,
     float: true,
     sizeToContent: false,
     disableResize: true,
@@ -297,7 +376,6 @@ onMounted(() => {
         w: tw,
         h: th,
       });
-      grid?.batchUpdate();
       grid?.commit();
       layoutFill();
     }
