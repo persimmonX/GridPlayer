@@ -22,3 +22,5 @@
 
 - npm install
 - npm run dev
+
+> 国内设置Electron下载镜像 `$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"` [链接](https://electronjs.p2hp.com/docs/latest/tutorial/installation)
