@@ -11,16 +11,16 @@ const cors = require("cors");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 let startPort = 4000;
 const app = express();
-
 const usePorts = {};
 //每个port只支持6路视频
+const maxPortSupport = 1;
 let staticServer: any = null;
 //public为静态文件夹
 export function startStaticServer(path, callback) {
   if (staticServer) return callback(staticServer);
   findAvailablePort(startPort, 18000, (err, port) => {
     if (!err) {
-      app.use(cors())
+      app.use(cors());
       app.use(express.static(path));
       staticServer = `http://127.0.0.1:${port}`;
       app.listen(port, () => {
@@ -43,7 +43,7 @@ function findAvailablePort(startPort = 3000, endPort = 18000, callback) {
     server.on("error", err => {
       // 如果端口被占用，尝试下一个端口
       if (err.code === "EADDRINUSE") {
-        if (usePorts[port] && usePorts[port] <= 5) {
+        if (usePorts[port] && usePorts[port] <= maxPortSupport) {
           //返回旧端口
           callback(null, port);
         } else {
@@ -167,7 +167,7 @@ const addPlayPath = (filePath: string, originId?: string) => {
           app.listen(port, () => {
             addWidget(port);
           });
-        } else if (usePorts[port] && usePorts[port] <= 5) {
+        } else if (usePorts[port] && usePorts[port] <= maxPortSupport) {
           usePorts[port]++;
           addWidget(port);
         }
@@ -188,7 +188,7 @@ const addPlayLink = (link: string, originId?: string) => {
           //开始使用
           usePorts[port] = 1;
           app.listen(port, () => {});
-        } else if (usePorts[port] && usePorts[port] <= 5) {
+        } else if (usePorts[port] && usePorts[port] <= maxPortSupport) {
           usePorts[port]++;
         }
       }

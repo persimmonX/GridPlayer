@@ -130,7 +130,7 @@ onMounted(() => {
       playerOption.hls = {
         retryCount: 1000000, // 重试 3 次，默认值
         retryDelay: 1000, // 每次重试间隔 1 秒，默认值
-        loadTimeout: 10000, // 请求超时时间为 10 秒，默认值
+        loadTimeout: 1000, // 请求超时时间为 10 秒，默认值
         fetchOptions: {
           // 该参数会透传给 fetch，默认值为 undefined
           mode: "cors",
