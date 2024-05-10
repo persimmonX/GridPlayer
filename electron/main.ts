@@ -55,7 +55,7 @@ let template: Array<MenuItemConstructorOptions> = [
     ],
   },
 ];
-setupTitlebar();
+
 const menus = Menu.buildFromTemplate(template);
 // Menu.setApplicationMenu(null);
 function findObjectsWithAccelerator(arr) {
@@ -179,18 +179,18 @@ function getMainWindowPopup(type?: "played" | "all"): any {
   let base: Array<MenuItemConstructorOptions> = [
     {
       label: "添加",
-      icon: path.join(__dirname, "../public/basic/003-add.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/003-add.png"),
       submenu: [
         {
           label: "添加文件",
           accelerator: "CmdOrCtrl+A",
-          icon: path.join(__dirname, "../public/basic/065-archives.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/065-archives.png"),
           click: addFile,
         },
         {
           label: "添加URL",
           accelerator: "CmdOrCtrl+U",
-          icon: path.join(__dirname, "../public/basic/088-thunder.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/088-thunder.png"),
           click: () => {
             // 播放在线视频
             linkPopup = createPopupWindow("link", "外部连接", 500, 200);
@@ -198,7 +198,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         },
         {
           label: "使用脚本",
-          icon: path.join(__dirname, "../public/basic/179-document.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/179-document.png"),
           accelerator: "CmdOrCtrl+/",
           click: () => {
             // 播放在线视频
@@ -237,7 +237,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         },
         {
           label: "最近播放",
-          icon: path.join(__dirname, "../public/basic/131-notepad.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/131-notepad.png"),
           submenu: hmenu,
         },
       ],
@@ -246,7 +246,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "打开播放列表",
       accelerator: "CmdOrCtrl+O",
-      icon: path.join(__dirname, "../public/basic/092-folder.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/092-folder.png"),
       click: () => {
         if (win) {
           const options: { properties?: ("openFile" | "openDirectory")[]; title: string; filters: any } = {
@@ -268,7 +268,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "保存播放列表",
       accelerator: "CmdOrCtrl+T",
-      icon: path.join(__dirname, "../public/basic/131-notepad.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/131-notepad.png"),
       click: () => {
         dialog
           .showMessageBox({
@@ -317,7 +317,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "最近播放列表",
-      icon: path.join(__dirname, "../public/basic/046-compass.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/046-compass.png"),
       submenu: pmenu,
     },
   ];
@@ -328,7 +328,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "重新加载",
       accelerator: "CmdOrCtrl+R",
-      icon: path.join(__dirname, "../public/basic/150-recycle.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/150-recycle.png"),
       click: event => {
         win?.webContents.send("reload-video");
       },
@@ -336,7 +336,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "删除窗口",
       accelerator: "CmdOrCtrl+X",
-      icon: path.join(__dirname, "../public/basic/031-cancel.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/031-cancel.png"),
       click: event => {
         win?.webContents.send("removeWidget");
       },
@@ -346,16 +346,16 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "全部",
-      icon: path.join(__dirname, "../public/basic/111-layers.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/111-layers.png"),
       submenu: [
         {
           label: "视频",
-          icon: path.join(__dirname, "../public/basic/223-video.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/223-video.png"),
           submenu: [
             {
               label: "暂停",
               accelerator: "CmdOrCtrl+Shift+P",
-              icon: path.join(__dirname, "../public/basic/140-pause.png"),
+              icon: path.join(process.env.VITE_PUBLIC, "basic/140-pause.png"),
               click: () => {
                 win?.webContents.send("setAllPause");
               },
@@ -363,7 +363,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
             {
               label: "播放",
               accelerator: "CmdOrCtrl+P",
-              icon: path.join(__dirname, "../public/basic/145-play.png"),
+              icon: path.join(process.env.VITE_PUBLIC, "basic/145-play.png"),
               click: () => {
                 win?.webContents.send("setAllStart");
               },
@@ -371,7 +371,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
             {
               label: "重新加载",
               accelerator: "CmdOrCtrl+Shift+R",
-              icon: path.join(__dirname, "../public/basic/151-recycle.png"),
+              icon: path.join(process.env.VITE_PUBLIC, "basic/151-recycle.png"),
               click: event => {
                 win?.webContents.send("reload-video-all");
               },
@@ -380,12 +380,12 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         },
         {
           label: "声音",
-          icon: path.join(__dirname, "../public/basic/130-note.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/130-note.png"),
           submenu: [
             {
               label: "静音",
               accelerator: "CmdOrCtrl+M",
-              icon: path.join(__dirname, "../public/basic/226-mute.png"),
+              icon: path.join(process.env.VITE_PUBLIC, "basic/226-mute.png"),
               click: () => {
                 win?.webContents.send("setAllMute");
               },
@@ -393,7 +393,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
             {
               label: "解除静音",
               accelerator: "CmdOrCtrl+Shift+M",
-              icon: path.join(__dirname, "../public/basic/227-low volume.png"),
+              icon: path.join(process.env.VITE_PUBLIC, "basic/227-low volume.png"),
               click: () => {
                 win?.webContents.send("setAllReleaseMute");
               },
@@ -404,12 +404,12 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "布局",
-      icon: path.join(__dirname, "../public/basic/099-squares.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/099-squares.png"),
       submenu: [
         {
           label: "横向填充",
           accelerator: "CmdOrCtrl+H",
-          icon: path.join(__dirname, "../public/basic/034-center align.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/034-center align.png"),
           click: () => {
             win?.webContents.send("layout-flex", "horizontal");
           },
@@ -417,7 +417,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "纵向填充",
           accelerator: "CmdOrCtrl+J",
-          icon: path.join(__dirname, "../public/basic/033-center align.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/033-center align.png"),
           click: () => {
             win?.webContents.send("layout-flex", "vertical");
           },
@@ -425,7 +425,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "自由布局",
           accelerator: "CmdOrCtrl+F",
-          icon: path.join(__dirname, "../public/basic/185-top alignment.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/185-top alignment.png"),
           click: () => {
             win?.webContents.send("layout-flex", "freeStyle");
           },
@@ -434,12 +434,12 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "裁剪",
-      icon: path.join(__dirname, "../public/basic/047-compress.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/047-compress.png"),
       submenu: [
         {
           label: "放大",
           accelerator: "CmdOrCtrl+numadd",
-          icon: path.join(__dirname, "../public/basic/235-zoom in.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/235-zoom in.png"),
           click: () => {
             win?.webContents.send("scale-add");
           },
@@ -447,7 +447,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "缩小",
           accelerator: "CmdOrCtrl+numsub",
-          icon: path.join(__dirname, "../public/basic/236-zoom out.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/236-zoom out.png"),
           click: () => {
             win?.webContents.send("scale-reduce");
           },
@@ -455,7 +455,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "↑",
           accelerator: "CmdOrCtrl+Up",
-          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/052-crop.png"),
           click: () => {
             win?.webContents.send("move-up");
           },
@@ -463,7 +463,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "↓",
           accelerator: "CmdOrCtrl+Down",
-          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/052-crop.png"),
           click: () => {
             win?.webContents.send("move-down");
           },
@@ -471,7 +471,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "←",
           accelerator: "CmdOrCtrl+Left",
-          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/052-crop.png"),
           click: () => {
             win?.webContents.send("move-left");
           },
@@ -479,7 +479,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "→",
           accelerator: "CmdOrCtrl+Right",
-          icon: path.join(__dirname, "../public/basic/052-crop.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/052-crop.png"),
           click: () => {
             win?.webContents.send("move-right");
           },
@@ -487,7 +487,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "还原",
           accelerator: "CmdOrCtrl+num0",
-          icon: path.join(__dirname, "../public/basic/163-search.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/163-search.png"),
           click: () => {
             win?.webContents.send("reset-normal");
           },
@@ -496,12 +496,12 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "控制",
-      icon: path.join(__dirname, "../public/basic/048-monitor.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/048-monitor.png"),
       submenu: [
         {
           label: "全屏",
           accelerator: "CmdOrCtrl+Space",
-          icon: path.join(__dirname, "../public/basic/048-monitor.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/048-monitor.png"),
           click: () => {
             win?.webContents.send("full-screen");
           },
@@ -509,7 +509,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         {
           label: "Next",
           accelerator: "CmdOrCtrl+Tab",
-          icon: path.join(__dirname, "../public/basic/048-monitor.png"),
+          icon: path.join(process.env.VITE_PUBLIC, "basic/048-monitor.png"),
           click: () => {
             //选择下一个
             win?.webContents.send("select-next");
@@ -522,7 +522,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "设置",
       accelerator: "CmdOrCtrl+F6",
-      icon: path.join(__dirname, "../public/basic/128-monitor.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/128-monitor.png"),
       click: () => {
         // 打开设置弹窗
         configPopup = createPopupWindow("config", "设置", 800, 600, false);
@@ -531,7 +531,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "打开控制台",
       accelerator: "CmdOrCtrl+F12",
-      icon: path.join(__dirname, "../public/basic/128-monitor.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/128-monitor.png"),
       click: () => {
         // 播放在线视频
         toggleDev();
@@ -541,7 +541,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "重载程序",
       accelerator: "CmdOrCtrl+l",
-      icon: path.join(__dirname, "../public/basic/188-recycle.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/188-recycle.png"),
       role: "reload",
       click: () => {
         // 播放在线视频
@@ -551,7 +551,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
   let setting: Array<MenuItemConstructorOptions> = [
     {
       label: "查看SVG",
-      icon: path.join(__dirname, "../public/basic/107-image.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/107-image.png"),
       click: () => {
         // 播放在线视频
         createPopupWindow("svg", "svg");
@@ -560,7 +560,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     },
     {
       label: "关于",
-      icon: path.join(__dirname, "../public/basic/132-note.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/132-note.png"),
       click: () => {
         // 播放在线视频
         createPopupWindow("about", "关于");
@@ -620,8 +620,8 @@ function createPopupWindow(hashPath: string, title?: string, width = 500, height
     title: title,
     show: false,
     resizable: resizable,
-    titleBarStyle:"hidden",
-    icon: path.join(__dirname, "../public/main/png/16x16.png"),
+    titleBarStyle: "hidden",
+    icon: path.join(process.env.VITE_PUBLIC, "main/png/16x16.png"),
     backgroundColor: "#f8f8f8",
     webPreferences: {
       contextIsolation: true,
@@ -647,10 +647,11 @@ function toggleDev() {
     win?.webContents.openDevTools();
   }
 }
+setupTitlebar();
 function createWindow() {
   win = new BrowserWindow({
     title: "GridPlayer",
-    icon: path.join(__dirname, "../public/main/png/16x16.png"),
+    icon: path.join(process.env.VITE_PUBLIC, "main/png/16x16.png"),
     focusable: false,
     titleBarStyle: "hidden",
     // titleBarOverlay: true,
@@ -726,7 +727,7 @@ function createWindow() {
 }
 ipcMain.handle("viewSvg", async (event, data) => {
   try {
-    let files: any = await readDirRecursive(path.resolve(__dirname, "../public/basic"));
+    let files: any = await readDirRecursive(path.resolve(process.env.VITE_PUBLIC, "basic"));
     files = files.map((file: any) => file.replace(path.resolve(__dirname, "../public"), ""));
     return files;
   } catch (err) {
