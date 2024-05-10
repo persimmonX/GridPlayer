@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "ace-code": "^1.33.1",
+    "connect-timeout": "^1.9.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "custom-electron-titlebar": "^4.2.8",

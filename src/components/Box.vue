@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "../store";
 import Player from "xgplayer";
 // import HlsJsPlugin from "xgplayer-hls.js";
-import HlsJsPlugin from "xgplayer-hls";
+import HlsJsPlugin, { Hls, EVENT } from "xgplayer-hls";
 // import FlvJsPlugin from "xgplayer-flv.js";
 import FlvJsPlugin from "xgplayer-flv";
 import mitter from "@/store/bus";
@@ -111,7 +111,6 @@ onMounted(() => {
       height: "100%",
       mode: "cors",
       startTime: xgOption?.currentTime || startTime,
-      loading: false,
       loop: loop,
       download: true,
       closeVideoClick: true,
@@ -128,9 +127,9 @@ onMounted(() => {
     if (url?.endsWith(".m3u8")) {
       playerOption.plugins = [HlsJsPlugin];
       playerOption.hls = {
-        retryCount: 1000000, // 重试 3 次，默认值
+        retryCount: 3, // 重试 3 次，默认值
         retryDelay: 1000, // 每次重试间隔 1 秒，默认值
-        loadTimeout: 1000, // 请求超时时间为 10 秒，默认值
+        loadTimeout: 3000, // 请求超时时间为 10 秒，默认值
         fetchOptions: {
           // 该参数会透传给 fetch，默认值为 undefined
           mode: "cors",
@@ -140,6 +139,16 @@ onMounted(() => {
       playerOption.plugins = [FlvJsPlugin];
     }
     player = new Player(playerOption);
+    player.on("core_event", ({ eventName, ...rest }) => {
+      console.log("🐤 - player.on - eventName:", eventName);
+      if (eventName == EVENT.LOAD_RETRY) {
+        console.log("ddddd", rest, player?.currentTime);
+        if (player?.currentTime) {
+          player.currentTime = player.currentTime + 1;
+          player.play();
+        }
+      }
+    });
     mitter.on("get-xg-option", callback => {
       callback({
         id,
@@ -180,6 +189,11 @@ onMounted(() => {
       }
     });
   } else if (isText(mimeType)) {
+  }
+});
+onBeforeUnmount(() => {
+  if (player) {
+    player.destroy();
   }
 });
 function getCurrentDom() {

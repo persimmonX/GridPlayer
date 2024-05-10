@@ -19,7 +19,7 @@ const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const vm = require("vm");
-process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "disabled";
+// process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "disabled";
 // The built directory structure
 //
 // ├─┬─┬ dist

@@ -2,15 +2,19 @@ import { createRequire } from "node:module";
 import { separateDomainAndPath } from "./util/index";
 import { v4 as uuidv4 } from "uuid";
 import mime from "mime";
+
 const require = createRequire(import.meta.url);
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const net = require("net");
 const cors = require("cors");
+const timeout = require("connect-timeout");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 let startPort = 4000;
+const maxtimeout = "120s";
 const app = express();
+app.use(timeout(maxtimeout));
 const usePorts = {};
 //每个port只支持6路视频
 const maxPortSupport = 1;
