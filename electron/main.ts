@@ -870,8 +870,14 @@ ipcMain.handle("get-near-last-script", () => {
   let all = scriptList.getAll();
   let last = _.last(all);
   if (last) {
-    let text = fs.readFileSync(last, "utf-8");
-    return text;
+    //检查文件是否存在，不存在删除记录
+    if (fs.existsSync(last)) {
+      let text = fs.readFileSync(last, "utf-8");
+      return text;
+    } else {
+      scriptList.remove(last);
+      return "";
+    }
   } else {
     return "";
   }

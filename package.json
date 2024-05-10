@@ -40,7 +40,9 @@
     "vue": "^3.4.21",
     "vue-router": "^4.3.2",
     "xgplayer": "^3.0.17",
+    "xgplayer-flv": "^3.0.17",
     "xgplayer-flv.js": "^3.0.17",
+    "xgplayer-hls": "^3.0.17",
     "xgplayer-hls.js": "^3.0.17",
     "xgplayer-mp4": "^3.0.17"
   },

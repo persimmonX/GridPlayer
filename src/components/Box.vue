@@ -2,8 +2,10 @@
 import { onMounted, ref, watch } from "vue";
 import { useStore } from "../store";
 import Player from "xgplayer";
-import HlsJsPlugin from "xgplayer-hls.js";
-import FlvJsPlugin from "xgplayer-flv.js";
+// import HlsJsPlugin from "xgplayer-hls.js";
+import HlsJsPlugin from "xgplayer-hls";
+// import FlvJsPlugin from "xgplayer-flv.js";
+import FlvJsPlugin from "xgplayer-flv";
 import mitter from "@/store/bus";
 import debounce from "debounce";
 import AceEditor from "./AceEditor.vue";
@@ -49,7 +51,6 @@ const active = ref(false);
 const select = ref(false);
 const playerDom = ref();
 const imageDom = ref();
-let plugins: any = [];
 let scale = 1;
 let moveXPercent = 0;
 let moveYPercent = 0;
@@ -67,6 +68,23 @@ const selectThis = () => {
 };
 const cssFullScreen = ref(false);
 let player: null | Player = null;
+function isVideo(url, mimeType) {
+  return url?.endsWith(".m3u8") || url?.endsWith(".flv") || /^video/.test(mimeType);
+}
+function isText(mimeType: string) {
+  const editableTextContentTypes = [
+    "text/plain",
+    "text/html",
+    "text/css",
+    "application/xml", // 或者 'text/xml'
+    "application/json",
+    "text/javascript", // 或者 'application/javascript'
+  ];
+  return editableTextContentTypes.includes(mimeType);
+}
+function isImage(mimeType) {
+  return /^image/.test(mimeType);
+}
 onMounted(() => {
   box.value.onmousemove = () => {
     //激活5
@@ -78,17 +96,12 @@ onMounted(() => {
     active.value = false;
     select.value = false;
   };
-  if (/^video/.test(mimeType)) {
-    if (url?.endsWith(".m3u8")) {
-      plugins.push(HlsJsPlugin);
-    } else if (url?.endsWith(".flv")) {
-      plugins.push(FlvJsPlugin);
-    }
+  if (isVideo(url, mimeType)) {
     const defaultMute = _.deepFind(store.$state.configs.list, "startMute");
     const loop = _.deepFind(store.$state.configs.list, "loop");
     const autoplay = _.deepFind(store.$state.configs.list, "startMute");
     const startTime = _.deepFind(store.$state.configs.list, "startTime", 0);
-    player = new Player({
+    const playerOption: any = {
       el: playerDom.value,
       url: url,
       autoplay: autoplay,
@@ -102,7 +115,6 @@ onMounted(() => {
       loop: loop,
       download: true,
       closeVideoClick: true,
-      plugins: plugins,
       videoFillMode: "cover",
       cssFullscreen: false,
       commonStyle: {
@@ -112,8 +124,22 @@ onMounted(() => {
         },
       },
       isLive: false,
-      // plugins: [Mp4Plugin],
-    });
+    };
+    if (url?.endsWith(".m3u8")) {
+      playerOption.plugins = [HlsJsPlugin];
+      playerOption.hls = {
+        retryCount: 1000000, // 重试 3 次，默认值
+        retryDelay: 1000, // 每次重试间隔 1 秒，默认值
+        loadTimeout: 10000, // 请求超时时间为 10 秒，默认值
+        fetchOptions: {
+          // 该参数会透传给 fetch，默认值为 undefined
+          mode: "cors",
+        },
+      };
+    } else if (url?.endsWith(".flv")) {
+      playerOption.plugins = [FlvJsPlugin];
+    }
+    player = new Player(playerOption);
     mitter.on("get-xg-option", callback => {
       callback({
         id,
@@ -286,17 +312,6 @@ mitter.on("full-screen", () => {
     store.$state.cssFullScreen = cssFullScreen.value;
   }
 });
-function isText(mimeType: string) {
-  const editableTextContentTypes = [
-    "text/plain",
-    "text/html",
-    "text/css",
-    "application/xml", // 或者 'text/xml'
-    "application/json",
-    "text/javascript", // 或者 'application/javascript'
-  ];
-  return editableTextContentTypes.includes(mimeType);
-}
 
 watch(select, value => {
   if (value) {
@@ -338,8 +353,8 @@ watch(
 </script>
 <template>
   <div class="box" @click="selectThis" ref="box" :class="{ cssFullScreen }">
-    <div v-if="/^video/.test(mimeType)" class="" ref="playerDom"></div>
-    <div v-else-if="/^image/.test(mimeType)" class="image-box" ref="imageDom">
+    <div v-if="isVideo(url, mimeType)" class="" ref="playerDom"></div>
+    <div v-else-if="isImage(mimeType)" class="image-box" ref="imageDom">
       <img :src="url" :alt="name" />
     </div>
     <div class="text-box" v-else-if="isText(mimeType)">
