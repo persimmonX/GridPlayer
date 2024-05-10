@@ -15,7 +15,7 @@
 
 ## 展示
 
-[img](./images/show.png)
+![img](./images/show.png)
 
 ## 运行
 
