@@ -1,8 +1,10 @@
 {
   "name": "gridplayer",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
+  "author": "xman",
+  "description": "多视频播放器",
   "icons": {
     "16": "icons/16x16.png",
     "32": "icons/32x32.png",
@@ -12,7 +14,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build && electron-builder",
+    "build": "vite build && electron-builder",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -21,7 +23,7 @@
     "crypto-js": "^4.2.0",
     "custom-electron-titlebar": "^4.2.8",
     "debounce": "^2.0.0",
-    "electron-store": "^9.0.0",
+    "electron-store": "^8.2.0",
     "express": "^4.19.2",
     "fluent-ffmpeg": "^2.1.2",
     "gridstack": "^10.1.2",
@@ -45,7 +47,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
     "electron": "^30.0.1",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^25.0.0-alpha.7",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.6",
