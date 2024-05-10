@@ -2,7 +2,7 @@ import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, MenuItemCons
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { addPlayPath, addPlayLink } from "./videoServer";
+import { addPlayPath, addPlayLink, startStaticServer } from "./videoServer";
 import { readDirRecursive, isNetworkUrl } from "./util";
 import playHistory from "./store/PlayHistory";
 import scriptList from "./store/ScriptList";
@@ -635,7 +635,9 @@ function createPopupWindow(hashPath: string, title?: string, width = 500, height
   if (VITE_DEV_SERVER_URL) {
     popup.loadURL(VITE_DEV_SERVER_URL + `/#/${hashPath}`);
   } else {
-    popup.loadFile(path.join(RENDERER_DIST, `index.html/#/${hashPath}`));
+    startStaticServer(RENDERER_DIST, server => {
+      popup?.loadURL(server + `/#/${hashPath}`);
+    });
   }
   popups.push(popup);
   return popup;
@@ -691,10 +693,11 @@ function createWindow() {
   });
 
   if (VITE_DEV_SERVER_URL) {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-    // win.loadURL(VITE_DEV_SERVER_URL);
+    win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
+    startStaticServer(RENDERER_DIST, server => {
+      win?.loadURL(server + "/#/");
+    });
   }
   //关闭所有弹框
   win.on("close", () => {

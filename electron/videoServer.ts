@@ -7,11 +7,29 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const net = require("net");
+const cors = require("cors");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 let startPort = 4000;
 const app = express();
+
 const usePorts = {};
 //每个port只支持6路视频
+let staticServer: any = null;
+//public为静态文件夹
+export function startStaticServer(path, callback) {
+  if (staticServer) return callback(staticServer);
+  findAvailablePort(startPort, 18000, (err, port) => {
+    if (!err) {
+      app.use(cors())
+      app.use(express.static(path));
+      staticServer = `http://127.0.0.1:${port}`;
+      app.listen(port, () => {
+        callback(staticServer);
+      });
+    }
+  });
+}
+
 function findAvailablePort(startPort = 3000, endPort = 18000, callback) {
   let currentPort = startPort;
   // 递归函数，用于尝试绑定到下一个端口
@@ -49,14 +67,6 @@ function findAvailablePort(startPort = 3000, endPort = 18000, callback) {
   // 开始尝试从 startPort 开始的端口
   tryPort(currentPort);
 }
-// 设置静态文件目录
-// app.use(
-//   cors({
-//     methods: ["GET", "POST"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//     exposedHeaders: ["Set-Cookie"],
-//   })
-// );
 app.get("/video-stream/:videoId", (req: any, res: any) => {
   const videoId = req.params.videoId;
 
