@@ -7,6 +7,7 @@
 ## 使用主要框架
 
 - Electron（桌面开发）
+- Vue3|Vite|Ts（UI）
 - GridStack.js（窗口布局）
 - Ace.js（代码展示/格式化）
 - Xgplayer.js（西瓜视频播放器）
