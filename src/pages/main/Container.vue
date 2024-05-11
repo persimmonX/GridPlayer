@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { GridStack, GridStackEngine, GridStackNode, GridStackMoveOpts, GridStackWidget } from "gridstack";
-import { onMounted, watch, ref, Ref, onBeforeUnmount, nextTick } from "vue";
+import { onMounted, watch, ref, Ref, onBeforeUnmount, nextTick, computed } from "vue";
 import Box from "@/components/Box.vue";
 import { useStore } from "@/store";
 import throttle from "throttleit";
@@ -27,7 +27,19 @@ const emptyDom = ref();
 const widgets: Ref<Array<any>> = ref([]);
 let startDrag = false;
 let layout: Ref<"horizontal" | "vertical" | "freeStyle"> = ref("vertical");
-
+const isEmpty = computed(() => {
+  if (widgets.value.length === 0) {
+    let background = _.deepFind(store.$state.configs.list, "background", {});
+    if (background.use && background.url && emptyDom.value) {
+      backgroundUse.value = true;
+      emptyDom.value.style.backgroundImage = `url(${background.url})`;
+      emptyDom.value.style.backgroundSize = background.size;
+      emptyDom.value.style.backgroundRepeat = background.repeat;
+    }
+    return true;
+  }
+  return false;
+});
 const throttleLayout = throttle(layoutFill, 100);
 function layoutFill() {
   if (grid) {
@@ -296,6 +308,7 @@ const removeWidget = () => {
     if (index > -1) {
       grid?.removeWidget(`#${currentWidgetId.value}`, true);
       widgets.value.splice(index, 1);
+      console.log("🐤 - removeWidget - widgets.value:", widgets.value);
       nextTick(() => {
         if (layout.value != "freeStyle") {
           throttleLayout();
@@ -322,13 +335,7 @@ function isPointInsideElement(el, point) {
 onMounted(() => {
   let winHeight = document.body.clientHeight;
   layout.value = _.deepFind(store.$state.configs.list, "layout", layout.value);
-  let background = _.deepFind(store.$state.configs.list, "background", {});
-  if (background.use && background.url) {
-    backgroundUse.value = true;
-    emptyDom.value.style.backgroundImage = `url(${background.url})`;
-    emptyDom.value.style.backgroundSize = background.size;
-    emptyDom.value.style.backgroundRepeat = background.repeat;
-  }
+
   grid = GridStack.init({
     margin: "0px",
     cellHeight: winHeight,
@@ -538,10 +545,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="widgets.length == 0" class="empty" ref="emptyDom" @dragover="dragOver($event)" @drop="drop($event)">
+  <div v-if="isEmpty" class="empty" ref="emptyDom" @dragover="dragOver($event)" @drop="drop($event)">
     <div v-if="!backgroundUse">Ctrl+A/右键添加/拖拽文件</div>
   </div>
-  <div v-show="widgets.length > 0" class="grid-stack" @dragover="dragOver($event)" @drop="drop($event)" ref="gridStackDom">
+  <div v-show="!isEmpty" class="grid-stack" @dragover="dragOver($event)" @drop="drop($event)" ref="gridStackDom">
     <div class="grid-stack-item" v-for="w in widgets" :gs-x="w.x" :gs-y="w.y" :gs-w="w.w" :gs-h="w.h" :gs-id="w.id" :id="w.id" :key="w.id">
       <div class="grid-stack-item-content">
         <Box :id="w.id" :name="w.name" :url="w.url" :xg-option="w.xgOption" :mimeType="w.mimeType" :fileType="w.fileType" />

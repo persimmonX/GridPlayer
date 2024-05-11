@@ -114,15 +114,40 @@ const checkResult = async () => {
     _.merge(resultValue.value, results);
   });
 };
+let isMoving = false;
+let offsetX = 0;
+let positionX = 0;
+const dragDom = ref();
+const startDrag = _e => {
+  _e.preventDefault();
+  isMoving = true;
+  positionX = _e.clientX;
+};
+const overDrag = _e => {
+  if (isMoving) {
+    positionX = _e.clientX;
+    offsetX = 0;
+    dragDom.value.style.transform = `translateX(${offsetX}px)`;
+    dragDom.value.style.left = `${positionX - 20}px`; //padding + 自身宽度/2
+    isMoving = false;
+  }
+};
+const moveDrag = _e => {
+  if (isMoving) {
+    offsetX = _e.clientX - positionX;
+    dragDom.value.style.transform = `translateX(${offsetX}px)`;
+    editorDom.value.style.width = `${_e.clientX - 20}px`;
+  }
+};
 </script>
 
 <template>
-  <div class="box" novalidate>
+  <div class="box" novalidate @mouseup="overDrag($event)" @mousemove="moveDrag($event)">
     <div class="input-box">
       <div class="isOpen" ref="editorDom"></div>
+      <div class="drag" ref="dragDom" @mousedown="startDrag($event)"></div>
       <div class="result" ref="resultDom">
-        <div>执行结果：</div>
-        <div v-if="checking">.....checking</div>
+        <div>执行结果：<span v-if="checking">.....checking</span></div>
         <div class="item" v-for="(result, index) in resultValue" :key="index">
           <input type="checkbox" v-model="result.checked" :id="`r-${index}`" :value="result.url" />
           <del v-if="result.disabled">{{ result.url }}</del>
@@ -166,7 +191,9 @@ const checkResult = async () => {
     width: 100%;
     display: flex;
     align-items: center;
+    position: relative;
     .result {
+      width: 35%;
       flex: 1;
       height: 100%;
       background-color: #44475a;
@@ -184,8 +211,17 @@ const checkResult = async () => {
     }
     .isOpen {
       height: 100%;
-      width: 100%;
-      flex: 3;
+      width: 65%;
+      overflow: hidden;
+    }
+    .drag {
+      position: absolute;
+      width: 10px;
+      height: 100%;
+      background-color: transparent;
+      cursor: col-resize;
+      right: calc(35% - 5px);
+      z-index: 100;
     }
   }
   .other {
