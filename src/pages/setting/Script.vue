@@ -131,7 +131,7 @@ const checkResult = async () => {
       </div>
     </div>
     <div class="other">
-      <p class="info">支持Javascript(右键查看记录)</p>
+      <p class="info">Javascript脚本(右键查看记录/Ctrl+F格式化)</p>
       <div class="btns">
         <div class="left-btns">
           <button @click="importScript">
