@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, Ref } from "vue";
 import Ace from "ace-code";
 import dracula from "ace-code/src/theme/dracula";
 import mode from "ace-code/src/mode/javascript.js";
+import _ from "lodash";
+
 const editorDom = ref();
 const resultDom = ref();
-const resultValue = ref([]);
+const checking = ref(false);
+const resultValue: Ref<
+  Array<{
+    url: string;
+    disabled: boolean;
+    checked: boolean;
+  }>
+> = ref([]);
 let editor: null | Ace.Ace.Editor = null;
 
 onMounted(() => {
@@ -32,6 +41,14 @@ function main() {
   window.ipcRenderer.on("history-script", (_e, script: string) => {
     editor?.setValue(script);
   });
+  window.ipcRenderer.on("format-script", () => {
+    let text = editor?.getValue();
+    window.ipcRenderer.invoke("parse-text", text, "typescript").then(res => {
+      if (res) {
+        editor?.setValue(res);
+      }
+    });
+  });
 });
 
 const openInput = () => {
@@ -40,7 +57,13 @@ const openInput = () => {
   if (promise) {
     promise
       .then(result => {
-        resultValue.value = result;
+        resultValue.value = result.map(item => {
+          return {
+            disabled: false,
+            checked: true,
+            url: item,
+          };
+        });
       })
       .catch(e => {
         console.log(e);
@@ -51,7 +74,7 @@ const confirmLink = () => {
   if (resultValue.value && resultValue.value.length > 0) {
     //校验视频地址
     let text = editor?.getValue();
-    let urls = resultValue.value.map(item => item);
+    let urls = resultValue.value.filter(item => item.checked).map(item => item.url);
     window.ipcRenderer.send("play-script", urls, text);
   }
 };
@@ -74,6 +97,23 @@ const importScript = () => {
       console.log(e);
     });
 };
+
+const checkResult = async () => {
+  checking.value = true;
+  let urls = resultValue.value.map(item => item.url);
+  window.ipcRenderer.invoke("check-urls-disabled", urls).then(urls => {
+    console.log("urls", urls);
+    checking.value = false;
+    let results = urls.map(item => {
+      return {
+        url: item.url,
+        disabled: !item.ok,
+        checked: item.ok,
+      };
+    });
+    _.merge(resultValue.value, results);
+  });
+};
 </script>
 
 <template>
@@ -82,9 +122,11 @@ const importScript = () => {
       <div class="isOpen" ref="editorDom"></div>
       <div class="result" ref="resultDom">
         <div>执行结果：</div>
+        <div v-if="checking">.....checking</div>
         <div class="item" v-for="(result, index) in resultValue" :key="index">
-          <input type="checkbox" :id="`r-${index}`" :value="result" />
-          <label>{{ result }}</label>
+          <input type="checkbox" v-model="result.checked" :id="`r-${index}`" :value="result.url" />
+          <del v-if="result.disabled">{{ result.url }}</del>
+          <label v-else>{{ result.url }}</label>
         </div>
       </div>
     </div>
@@ -103,6 +145,7 @@ const importScript = () => {
           </button>
         </div>
         <div class="right-btns">
+          <button class="" @click="checkResult" :disabled="resultValue.length == 0">校验</button>
           <button class="" @click="confirmLink" :disabled="resultValue.length == 0">播放</button>
           <button @click="cancelLink">取消</button>
         </div>
@@ -164,8 +207,8 @@ const importScript = () => {
         cursor: pointer;
       }
       .right-btns {
-        button:nth-child(1) {
-          margin-right: 15px;
+        button {
+          margin-left: 15px;
         }
       }
       .left-btns {

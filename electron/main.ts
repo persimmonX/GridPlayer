@@ -12,9 +12,10 @@ import playList from "./store/PlayList";
 import _ from "lodash";
 import store from "./store";
 import mime from "mime";
+import axios from "axios";
 import * as prettier from "prettier";
 import { setupTitlebar, attachTitlebarToWindow } from "custom-electron-titlebar/main";
-// import * as prettierPluginBabel from "prettier/plugins/babel.mjs";
+import * as prettierPluginBabel from "prettier/plugins/babel.mjs";
 const require = createRequire(import.meta.url);
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -232,6 +233,19 @@ function getMainWindowPopup(type?: "played" | "all"): any {
               }
               let historySavedMenu = Menu.buildFromTemplate(template);
               historySavedMenu.popup();
+            });
+            let formatAction = () => {
+              // console.log("e,e", e);
+              scriptPopup?.webContents.send("format-script");
+            };
+            scriptPopup.on("focus", () => {
+              globalShortcut.register("CmdOrCtrl+F", formatAction);
+            });
+            scriptPopup.on("close", () => {
+              globalShortcut.unregister("CmdOrCtrl+F");
+            });
+            scriptPopup.on("blur", () => {
+              globalShortcut.unregister("CmdOrCtrl+F");
             });
           },
         },
@@ -744,7 +758,6 @@ function createWindow() {
       }
     });
   });
-
   // 当窗口失去焦点时注销快捷键
   win.on("blur", () => {
     globalShortcut.unregisterAll();
@@ -851,6 +864,20 @@ ipcMain.on("save-script", (_e, text) => {
       console.error(err);
     });
 });
+
+ipcMain.handle("check-urls-disabled", async (_e, urls) => {
+  let results: any = [];
+  for (const url of urls) {
+    try {
+      const response: any = await axios.head(url);
+      results.push({ ok: response.status == 200, url: url });
+    } catch (error) {
+      results.push({ ok: false, url: url });
+    }
+  }
+  return results;
+});
+
 ipcMain.handle("get-near-last-script", () => {
   let all = scriptList.getAll();
   let last = _.last(all);
