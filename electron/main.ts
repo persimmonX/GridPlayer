@@ -2,7 +2,7 @@ import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, MenuItemCons
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { addPlayPath, addPlayLink, startStaticServer } from "./videoServer";
+import { addPlayPath, addPlayLink, startStaticServer, saveVideo, getFileById } from "./videoServer";
 import { readDirRecursive, isNetworkUrl } from "./util";
 import playHistory from "./store/PlayHistory";
 import scriptList from "./store/ScriptList";
@@ -331,6 +331,31 @@ function getMainWindowPopup(type?: "played" | "all"): any {
       icon: path.join(process.env.VITE_PUBLIC, "basic/150-recycle.png"),
       click: event => {
         win?.webContents.send("reload-video");
+      },
+    },
+    {
+      label: "下载视频",
+      accelerator: "CmdOrCtrl+R",
+      icon: path.join(process.env.VITE_PUBLIC, "basic/067-down arrow.png"),
+      click: event => {
+        win?.webContents.send("get-current-widget-id");
+        ipcMain.once("current-widget-id", (_e, id) => {
+          let filePath = getFileById(id);
+          let fileName = path.basename(filePath);
+          dialog
+            .showSaveDialog({
+              title: "保存视频",
+              defaultPath: `${fileName}.mp4`,
+              filters: [{ name: "视频文件", extensions: ["mp4"] }],
+            })
+            .then(res => {
+              if (res.filePath) {
+                saveVideo(id, res.filePath, progress => {
+                  win?.webContents.send("save-video-progress", { id, progress });
+                });
+              }
+            });
+        });
       },
     },
     {
@@ -794,53 +819,13 @@ ipcMain.handle("confirm-script", (_e, text) => {
   });
 });
 ipcMain.on("play-script", (_e, links, text) => {
-  dialog
-    .showMessageBox({
-      type: "info",
-      buttons: ["确定", "取消"],
-      title: "确认",
-      message: "播放前请确定是否保存当前脚本？",
-      defaultId: 0, // 默认选中的按钮索引，0 对应 "确定"
-      cancelId: 1, // 取消按钮的索引，1 对应 "取消"
-    })
-    .then(res => {
-      if (res.response == 0) {
-        dialog
-          .showSaveDialog({
-            title: "保存脚本",
-            filters: [
-              { name: "Text Files", extensions: ["js"] },
-              { name: "All Files", extensions: ["*"] },
-            ],
-          })
-          .then(result => {
-            if (!result.canceled) {
-              // 发送文件路径给渲染进程
-              let filePath = result.filePath;
-              fs.writeFileSync(filePath, text);
-              scriptList.add(filePath);
-            }
-            for (let link of links) {
-              doSelectPlayByProtocol(link).then(() => {
-                scriptPopup?.close();
-              });
-            }
-          })
-          .catch(err => {
-            console.error(err);
-          });
-      } else {
-        for (let link of links) {
-          doSelectPlayByProtocol(link).then(() => {
-            scriptPopup?.close();
-          });
-        }
-      }
-    })
-    .finally(() => {})
-    .catch(err => {
-      console.log("show confirm dialog error", err);
+  win?.webContents.send("clear-all-widget");
+  for (let link of links) {
+    doSelectPlayByProtocol(link).then(() => {
+      //  是否关闭脚本窗口待定
+      // scriptPopup?.close();
     });
+  }
 });
 ipcMain.on("cancel-script", _e => {
   scriptPopup?.close();

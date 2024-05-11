@@ -504,6 +504,16 @@ onMounted(() => {
   window.ipcRenderer.on("reload-video-all", () => {
     mitter.emit("reload-video-all");
   });
+  window.ipcRenderer.on("get-current-widget-id", () => {
+    window.ipcRenderer.send("current-widget-id", store.$state.currentWidget);
+  });
+  window.ipcRenderer.on("save-video-progress", (_e, data: { id: string; progress: { percentage: number } }) => {
+    mitter.emit("save-video-progress", data);
+  });
+  window.ipcRenderer.on("clear-all-widget", _e => {
+    grid?.removeAll(true);
+    widgets.value = [];
+  });
 });
 
 watch(

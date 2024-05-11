@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { separateDomainAndPath } from "./util/index";
 import { v4 as uuidv4 } from "uuid";
 import mime from "mime";
-
+import { getProgress } from "./util/request";
 const require = createRequire(import.meta.url);
 const express = require("express");
 const path = require("path");
@@ -10,11 +10,12 @@ const fs = require("fs");
 const net = require("net");
 const cors = require("cors");
 const timeout = require("connect-timeout");
+const ffmpeg = require("fluent-ffmpeg");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 let startPort = 4000;
-const maxtimeout = "120s";
+const maxTimeout = "120s";
 const app = express();
-app.use(timeout(maxtimeout));
+app.use(timeout(maxTimeout));
 const usePorts = {};
 //每个port只支持6路视频
 const maxPortSupport = 1;
@@ -203,6 +204,7 @@ const addPlayLink = (link: string, originId?: string) => {
       let fileExtension = link;
       let name = link;
       let fileType = "link";
+      pathList.set(id, link);
       let mimeType = getMIMEType(fileExtension);
       let middle = createProxyMiddleware({
         target: domain,
@@ -214,4 +216,31 @@ const addPlayLink = (link: string, originId?: string) => {
     });
   });
 };
-export { addPlayPath, addPlayLink };
+
+async function saveVideo(id: string, filePath: string, callback: (process) => void) {
+  let url = pathList.get(id);
+  let writeStream = fs.createWriteStream(filePath);
+  let pro = await getProgress(url);
+  if (pro) {
+    pro.on("progress", (progress: { percentage: number }) => {
+      callback(progress);
+    });
+  }
+
+  ffmpeg()
+    .input(url)
+    .addOutputOptions("-movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov")
+    .videoCodec("copy")
+    .format("mp4")
+    .on("end", function () {
+      callback({ percentage: 100 });
+    })
+    .pipe(pro)
+    .pipe(writeStream);
+}
+
+function getFileById(id: string) {
+  return pathList.get(id);
+}
+
+export { addPlayPath, addPlayLink, saveVideo, getFileById };

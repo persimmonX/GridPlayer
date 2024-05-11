@@ -3,7 +3,7 @@ import { onMounted, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "../store";
 import Player from "xgplayer";
 // import HlsJsPlugin from "xgplayer-hls.js";
-import HlsJsPlugin, { Hls, EVENT } from "xgplayer-hls";
+import HlsJsPlugin, { EVENT } from "xgplayer-hls";
 // import FlvJsPlugin from "xgplayer-flv.js";
 import FlvJsPlugin from "xgplayer-flv";
 import mitter from "@/store/bus";
@@ -51,6 +51,7 @@ const active = ref(false);
 const select = ref(false);
 const playerDom = ref();
 const imageDom = ref();
+const downloadPercentage = ref(0);
 let scale = 1;
 let moveXPercent = 0;
 let moveYPercent = 0;
@@ -129,7 +130,7 @@ onMounted(() => {
       playerOption.hls = {
         retryCount: 3, // 重试 3 次，默认值
         retryDelay: 1000, // 每次重试间隔 1 秒，默认值
-        loadTimeout: 3000, // 请求超时时间为 10 秒，默认值
+        loadTimeout: 10000, // 请求超时时间为 10 秒，默认值
         fetchOptions: {
           // 该参数会透传给 fetch，默认值为 undefined
           mode: "cors",
@@ -140,13 +141,9 @@ onMounted(() => {
     }
     player = new Player(playerOption);
     player.on("core_event", ({ eventName, ...rest }) => {
-      console.log("🐤 - player.on - eventName:", eventName);
       if (eventName == EVENT.LOAD_RETRY) {
-        console.log("ddddd", rest, player?.currentTime);
-        if (player?.currentTime) {
-          player.currentTime = player.currentTime + 1;
-          player.play();
-        }
+        console.log("错误重试", rest);
+        rest.error && rest.error.retryCount >= 3 ? player?.reload() : "";
       }
     });
     mitter.on("get-xg-option", callback => {
@@ -188,6 +185,16 @@ onMounted(() => {
         player.currentTime = startTime;
       }
     });
+    mitter.on("save-video-progress", (data: { id: string; progress: { percentage: number } }) => {
+      if (data.id === id) {
+        downloadPercentage.value = Math.floor(data.progress.percentage);
+        active.value = true;
+        if (downloadPercentage.value >= 100) {
+          disappear();
+          downloadPercentage.value = 100;
+        }
+      }
+    });
   } else if (isText(mimeType)) {
   }
 });
@@ -197,9 +204,9 @@ onBeforeUnmount(() => {
   }
 });
 function getCurrentDom() {
-  if (/^video/.test(mimeType)) {
+  if (isVideo(url, mimeType)) {
     return playerDom.value?.querySelector("video");
-  } else if (/^image/.test(mimeType)) {
+  } else if (isImage(mimeType)) {
     return imageDom.value?.querySelector("img");
   }
 }
@@ -379,7 +386,10 @@ watch(
       <p>文件名:{{ name }}.{{ fileType }},类型:{{ mimeType }}</p>
     </div>
     <div v-if="active" class="activeBox">
-      <div class="title">{{ name }}</div>
+      <div class="title">
+        <data class="download-bar" :style="`width:${downloadPercentage}%;background-color:${downloadPercentage == 100 ? 'green' : 'red'}`"></data>
+        <div>{{ name }}</div>
+      </div>
     </div>
   </div>
 </template>
@@ -420,6 +430,17 @@ watch(
   left: 0px;
   right: 0px;
   margin: auto;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: all;
+  .download-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-color: red;
+    opacity: 0.2;
+    height: 100%;
+  }
 }
 .image-box {
   width: 100%;

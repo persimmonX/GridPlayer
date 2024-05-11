@@ -80,7 +80,13 @@ const importScript = () => {
   <div class="box" novalidate>
     <div class="input-box">
       <div class="isOpen" ref="editorDom"></div>
-      <div class="result" ref="resultDom">执行结果：{{ resultValue }}</div>
+      <div class="result" ref="resultDom">
+        <div>执行结果：</div>
+        <div class="item" v-for="(result, index) in resultValue" :key="index">
+          <input type="checkbox" :id="`r-${index}`" :value="result" />
+          <label>{{ result }}</label>
+        </div>
+      </div>
     </div>
     <div class="other">
       <p class="info">支持Javascript(右键查看记录)</p>
@@ -127,6 +133,11 @@ const importScript = () => {
       box-sizing: border-box;
       overflow: auto;
       border-left: 1px solid #282a36;
+      .item {
+        display: flex;
+        align-items: center;
+        justify-self: flex-start;
+      }
     }
     .isOpen {
       height: 100%;
