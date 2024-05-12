@@ -10,6 +10,7 @@ import mitter from "@/store/bus";
 import debounce from "debounce";
 import AceEditor from "./AceEditor.vue";
 import _ from "lodash";
+import WatchDog from "./WatchDog";
 
 const props = defineProps({
   id: {
@@ -111,6 +112,8 @@ onMounted(() => {
       width: "100%",
       height: "100%",
       mode: "cors",
+      preloadTime: 5,
+      maxJumpDistance: 30,
       startTime: xgOption?.currentTime || startTime,
       loop: loop,
       download: true,
@@ -125,11 +128,12 @@ onMounted(() => {
       },
       isLive: false,
     };
+    let timeout = 10000;
     if (url?.endsWith(".m3u8")) {
       playerOption.plugins = [HlsJsPlugin];
       playerOption.hls = {
-        retryCount: 3, // 重试 3 次，默认值
-        retryDelay: 1000, // 每次重试间隔 1 秒，默认值
+        retryCount: 1, // 重试 3 次，默认值
+        retryDelay: 3000, // 每次重试间隔 1 秒，默认值
         loadTimeout: 10000, // 请求超时时间为 10 秒，默认值
         fetchOptions: {
           // 该参数会透传给 fetch，默认值为 undefined
@@ -140,10 +144,19 @@ onMounted(() => {
       playerOption.plugins = [FlvJsPlugin];
     }
     player = new Player(playerOption);
+    let dog = new WatchDog(timeout, () => {
+      if (player) {
+        let time = player?.currentTime;
+        player.switchURL(url, true);
+        player?.seek(time);
+      }
+    });
     player.on("core_event", ({ eventName, ...rest }) => {
       if (eventName == EVENT.LOAD_RETRY) {
-        console.log("错误重试", rest);
-        rest.error && rest.error.retryCount >= 3 ? player?.reload() : "";
+      }
+      if (eventName == EVENT.LOAD_START) dog.feed();
+      else if (eventName == EVENT.LOAD_COMPLETE) {
+        dog.stop();
       }
     });
     mitter.on("get-xg-option", callback => {
