@@ -17,6 +17,7 @@ import * as prettier from "prettier";
 import { setupTitlebar, attachTitlebarToWindow } from "custom-electron-titlebar/main";
 import * as prettierPluginBabel from "prettier/plugins/babel.mjs";
 const require = createRequire(import.meta.url);
+const { attach, detach, refresh } = require("electron-as-wallpaper");
 const sharp = require("sharp");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const vm = require("vm");
@@ -576,7 +577,19 @@ function getMainWindowPopup(type?: "played" | "all"): any {
         toggleDev();
       },
     },
-
+    {
+      label: "窗口置底/返回",
+      accelerator: "CmdOrCtrl+F4",
+      icon: path.join(process.env.VITE_PUBLIC, "basic/128-monitor.png"),
+      click: () => {
+        // 播放在线视频
+        if (isLower) {
+          releaseLower(win);
+        } else {
+          setLower(win);
+        }
+      },
+    },
     {
       label: "重载程序",
       accelerator: "CmdOrCtrl+l",
@@ -687,6 +700,25 @@ function toggleDev() {
   } else {
     win?.webContents.openDevTools();
   }
+}
+let isLower = false;
+//置地
+function setLower(win: BrowserWindow | null) {
+  if (!win) return;
+  attach(win, {
+    transparent: true,
+    forwardKeyboardInput: true,
+    forwardMouseInput: true,
+  });
+  win.setKiosk(true);
+  isLower = true;
+}
+function releaseLower(win: BrowserWindow | null) {
+  if (!win) return;
+  win.setKiosk(false);
+  detach(win);
+  refresh();
+  isLower = false;
 }
 setupTitlebar();
 function createWindow() {
@@ -952,6 +984,9 @@ ipcMain.handle("parse-text", (_e, text, parser) => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     globalShortcut.unregisterAll();
+    if (isLower) {
+      releaseLower(win);
+    }
     app.quit();
     win = null;
   }

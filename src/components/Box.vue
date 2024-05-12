@@ -112,7 +112,6 @@ onMounted(() => {
       width: "100%",
       height: "100%",
       mode: "cors",
-      preloadTime: 5,
       maxJumpDistance: 30,
       startTime: xgOption?.currentTime || startTime,
       loop: loop,
@@ -484,9 +483,22 @@ watch(
   position: fixed;
   width: 100%;
   /*electron-titlebar会占据30px顶部高度*/
-  height: calc(100% - 30px);
-  top: 30px;
+  height: 100%;
+  top: 0px;
   left: 0;
   z-index: 3000;
+}
+.cet-titlebar {
+  .cssFullScreen {
+    height: calc(100% - 30px);
+    top: 30px;
+  }
+}
+
+.cet-titlebar[aria-hidden="true"] {
+  .cssFullScreen {
+    height: 100%;
+    top: 0px;
+  }
 }
 </style>

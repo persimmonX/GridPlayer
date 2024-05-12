@@ -25,6 +25,7 @@
     "crypto-js": "^4.2.0",
     "custom-electron-titlebar": "^4.2.8",
     "debounce": "^2.0.0",
+    "electron-as-wallpaper": "^1.0.8",
     "electron-store": "^8.2.0",
     "express": "^4.19.2",
     "fluent-ffmpeg": "^2.1.2",
