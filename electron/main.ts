@@ -13,7 +13,7 @@ import _ from "lodash";
 import store from "./store";
 import mime from "mime";
 import axios from "axios";
-import * as prettier from "prettier";
+import { format } from "prettier";
 import { setupTitlebar, attachTitlebarToWindow } from "custom-electron-titlebar/main";
 import * as prettierPluginBabel from "prettier/plugins/babel.mjs";
 const require = createRequire(import.meta.url);
@@ -969,7 +969,7 @@ ipcMain.on("close-config-popup", _e => {
 });
 ipcMain.handle("parse-text", (_e, text, parser) => {
   try {
-    return prettier.format(text, {
+    return format(text, {
       parser: parser,
     });
   } catch (e) {

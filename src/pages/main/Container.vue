@@ -565,9 +565,6 @@ onBeforeUnmount(() => {
 .read-the-docs {
   color: #888;
 }
-:deep(.grid-stack-item-content) {
-  background: palegreen;
-}
 .empty {
   width: 100%;
   height: 100%;

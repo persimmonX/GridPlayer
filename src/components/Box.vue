@@ -425,7 +425,6 @@ watch(
   box-sizing: border-box;
   border: 5px solid rgba(173, 170, 170, 0.6);
   z-index: 1000;
-  /*color: rgb(219, 215, 215);*/
   color: white;
   pointer-events: none;
 }
@@ -488,14 +487,15 @@ watch(
   left: 0;
   z-index: 3000;
 }
-.cet-titlebar {
+</style>
+<style>
+.cet-titlebar + .cet-container {
   .cssFullScreen {
     height: calc(100% - 30px);
     top: 30px;
   }
 }
-
-.cet-titlebar[aria-hidden="true"] {
+.cet-titlebar[aria-hidden="true"] + .cet-container {
   .cssFullScreen {
     height: 100%;
     top: 0px;
