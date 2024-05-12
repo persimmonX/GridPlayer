@@ -13,9 +13,11 @@ import _ from "lodash";
 import store from "./store";
 import mime from "mime";
 import axios from "axios";
-import { format } from "prettier";
+import * as prettier from "prettier/standalone.mjs";
+import pluginTypescript from "prettier/plugins/typescript.mjs";
+import pluginEsTree from "prettier/plugins/estree.mjs";
 import { setupTitlebar, attachTitlebarToWindow } from "custom-electron-titlebar/main";
-import * as prettierPluginBabel from "prettier/plugins/babel.mjs";
+
 const require = createRequire(import.meta.url);
 const { attach, detach, refresh } = require("electron-as-wallpaper");
 const sharp = require("sharp");
@@ -969,8 +971,9 @@ ipcMain.on("close-config-popup", _e => {
 });
 ipcMain.handle("parse-text", (_e, text, parser) => {
   try {
-    return format(text, {
+    return prettier.format(text, {
       parser: parser,
+      plugins: [pluginTypescript, pluginEsTree],
     });
   } catch (e) {
     return text;
