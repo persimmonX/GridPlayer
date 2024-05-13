@@ -25,7 +25,7 @@
 因为使用了electron-as-wallpaper(编译c++到nodejs实现置底功能),需配置添加node-gyp环境，改目前插件只支持win10以上版本（win10:bug多个扩展屏只识别从左至右第一个,而非主屏，应该是跟获取win-form窗体顺序有关）
 
 - 安装最新版python(添加环境变量)
-- 安装visual c++桌面 ☑️勾选MSVC编译工具 ☑️win10 SDK
+- 安装visual studio c++桌面 ☑️勾选MSVC编译工具 ☑️win10 SDK
 - npm install -g node-gyp
 - cd your project
 - npm install
