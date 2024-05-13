@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, MenuItemConstructorOptions, MenuItem } from "electron";
+import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, MenuItemConstructorOptions, MenuItem, screen } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -564,7 +564,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "设置",
       accelerator: "CmdOrCtrl+F6",
-      icon: path.join(process.env.VITE_PUBLIC, "basic/128-monitor.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/045-gear.png"),
       click: () => {
         // 打开设置弹窗
         configPopup = createPopupWindow("config", "设置", 800, 600, false);
@@ -573,7 +573,7 @@ function getMainWindowPopup(type?: "played" | "all"): any {
     {
       label: "打开控制台",
       accelerator: "CmdOrCtrl+F12",
-      icon: path.join(process.env.VITE_PUBLIC, "basic/128-monitor.png"),
+      icon: path.join(process.env.VITE_PUBLIC, "basic/231-web.png"),
       click: () => {
         // 播放在线视频
         toggleDev();
@@ -709,8 +709,8 @@ function setLower(win: BrowserWindow | null) {
   if (!win) return;
   attach(win, {
     transparent: true,
-    forwardKeyboardInput: true,
-    forwardMouseInput: true,
+    forwardKeyboardInput: false,
+    forwardMouseInput: false,
   });
   win.setKiosk(true);
   isLower = true;
@@ -795,6 +795,11 @@ function createWindow() {
   // 当窗口失去焦点时注销快捷键
   win.on("blur", () => {
     globalShortcut.unregisterAll();
+    if (isLower) {
+      globalShortcut.register("CmdOrCtrl+F4", () => {
+        releaseLower(win);
+      });
+    }
   });
   win.on("minimize", () => {
     globalShortcut.unregisterAll();
