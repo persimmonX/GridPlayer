@@ -197,6 +197,18 @@ onMounted(() => {
         player.currentTime = startTime;
       }
     });
+    mitter.on("all-play-forward", (option: { type: "percent" | "duration"; value: number }) => {
+      if (option.type === "percent") {
+        let total = player?.duration;
+        if (total) {
+          let to = Number(total * option.value);
+          player?.seek(to);
+        }
+      } else if (option.type === "duration") {
+        player?.seek(option.value);
+      }
+    });
+    //mitter.emit("all-play-forward", option);
     mitter.on("save-video-progress", (data: { id: string; progress: { percentage: number } }) => {
       if (data.id === id) {
         downloadPercentage.value = Math.floor(data.progress.percentage);

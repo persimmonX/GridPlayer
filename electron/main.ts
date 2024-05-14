@@ -17,6 +17,7 @@ import * as prettier from "prettier/standalone.mjs";
 import pluginTypescript from "prettier/plugins/typescript.mjs";
 import pluginEsTree from "prettier/plugins/estree.mjs";
 import { setupTitlebar, attachTitlebarToWindow } from "custom-electron-titlebar/main";
+import { toValue } from "vue";
 
 const require = createRequire(import.meta.url);
 const { attach, detach, refresh } = require("electron-as-wallpaper");
@@ -441,6 +442,22 @@ function getMainWindowPopup(type?: "played" | "all"): any {
               },
             },
           ],
+        },
+        {
+          label: "快进",
+          icon: path.join(process.env.VITE_PUBLIC, "basic/095-forward.png"),
+          submenu: (() => {
+            let items: any = [];
+            for (let i = 0; i <= 10; i++) {
+              items.push({
+                label: `${i * 10}%`,
+                click: () => {
+                  win?.webContents.send("all-play-forward", { type: "percent", value: i / 10 });
+                },
+              });
+            }
+            return items;
+          })(),
         },
       ],
     },

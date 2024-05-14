@@ -476,6 +476,9 @@ onMounted(() => {
   window.ipcRenderer.on("full-screen", () => {
     mitter.emit("full-screen");
   });
+  window.ipcRenderer.on("all-play-forward", (_e, option) => {
+    mitter.emit("all-play-forward", option);
+  });
   window.ipcRenderer.on("save-play-list", () => {
     let items = grid?.save();
     if (items) {
