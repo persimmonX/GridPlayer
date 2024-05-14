@@ -158,12 +158,6 @@ onMounted(() => {
         dog.stop();
       }
     });
-    mitter.on("get-xg-option", callback => {
-      callback({
-        id,
-        currentTime: player?.currentTime,
-      });
-    });
 
     mitter.on("setAllMute", (value: boolean) => {
       if (player) {
@@ -208,7 +202,6 @@ onMounted(() => {
         player?.seek(option.value);
       }
     });
-    //mitter.emit("all-play-forward", option);
     mitter.on("save-video-progress", (data: { id: string; progress: { percentage: number } }) => {
       if (data.id === id) {
         downloadPercentage.value = Math.floor(data.progress.percentage);
@@ -355,6 +348,19 @@ mitter.on("full-screen", () => {
   if (store.$state.currentWidget == id) {
     cssFullScreen.value = !cssFullScreen.value;
     store.$state.cssFullScreen = cssFullScreen.value;
+  }
+});
+
+mitter.on("get-xg-option", callback => {
+  if (isVideo(url, mimeType)) {
+    callback({
+      id,
+      currentTime: player?.currentTime,
+    });
+  } else {
+    callback({
+      id,
+    });
   }
 });
 
