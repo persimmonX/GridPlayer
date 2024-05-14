@@ -189,6 +189,7 @@ const moveDrag = _e => {
   .input-box {
     flex: 1;
     width: 100%;
+    height: 0;
     display: flex;
     align-items: center;
     position: relative;

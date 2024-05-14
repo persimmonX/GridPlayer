@@ -879,7 +879,14 @@ ipcMain.handle("confirm-script", (_e, text) => {
   return new Promise((resolve, reject) => {
     try {
       text += "main();";
-      const result = vm.runInNewContext(text);
+      let context = {
+        fetch: fetch,
+        console: console,
+        fs: fs,
+        axios: axios,
+        path: path,
+      };
+      const result = vm.runInNewContext(text, context);
       resolve(result);
     } catch (error) {
       reject(error);
@@ -995,7 +1002,7 @@ ipcMain.handle("parse-text", (_e, text, parser) => {
   try {
     return prettier.format(text, {
       parser: parser,
-      plugins: [pluginTypescript, pluginEsTree,pluginBabel],
+      plugins: [pluginTypescript, pluginEsTree, pluginBabel],
     });
   } catch (e) {
     return text;
