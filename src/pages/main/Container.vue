@@ -238,10 +238,11 @@ const addWidgets = (
     gridStackOption?: { x: number; y: number; h: number; w: number };
     xgOption?: { currentTime: number };
     layout?: "horizontal" | "vertical" | "freeStyle";
+    mimeType: string;
   }>
 ) => {
   for (let option of options) {
-    const { id, name, url, originPath, gridStackOption, xgOption, layout: layoutStyle } = option;
+    const { id, name, url, originPath, gridStackOption, xgOption, layout: layoutStyle, mimeType } = option;
     //检查id是否已存在
     if (layoutStyle) {
       layout.value = layoutStyle;
@@ -252,8 +253,8 @@ const addWidgets = (
     });
     let node = {
       id: id,
-      w: gridStackOption?.w || 1,
-      h: gridStackOption?.h || 1,
+      w: gridStackOption?.w || 0,
+      h: gridStackOption?.h || 0,
       x: gridStackOption?.x || 0,
       y: gridStackOption?.y || 0,
       name,
@@ -261,45 +262,17 @@ const addWidgets = (
       originPath,
       xgOption,
       content: "",
+      mimeType,
     };
     widgets.value.push(node);
+    nextTick(() => {
+      grid?.makeWidget(node.id);
+      throttleLayout();
+      nextTick(() => {
+        throttleLayout();
+      });
+    });
   }
-
-  nextTick(() => {
-    for (let option of options) {
-      if (option.layout) {
-        layout.value = option.layout;
-      }
-      grid?.makeWidget(option.id);
-    }
-    //设置cell
-    const count = widgets.value.length;
-    const column = Math.ceil(Math.sqrt(count));
-    let row = Math.ceil(count / column);
-    const winHeight = gridStackDom.value.clientHeight;
-    const winWidth = gridStackDom.value.clientWidth;
-    if (layout.value == "horizontal") {
-      grid?.float(false);
-      grid?.cellHeight(winHeight / row);
-      grid?.column(column, "compact");
-      grid?.enableResize(false);
-      grid?.compact();
-    } else if (layout.value == "freeStyle") {
-      let initColumn = 12;
-      let cellHeight = (winWidth / initColumn) * (winHeight / winWidth);
-      //重新计算行高
-      grid?.float(true);
-      grid?.cellHeight(cellHeight);
-      grid?.column(initColumn);
-      grid?.enableResize(true);
-    } else {
-      grid?.float(false);
-      grid?.cellHeight(winHeight / row);
-      grid?.column(column, "compact");
-      grid?.enableResize(false);
-      grid?.compact();
-    }
-  });
 };
 const removeWidget = () => {
   if (currentWidgetId.value) {
