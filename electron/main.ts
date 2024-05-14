@@ -15,9 +15,9 @@ import mime from "mime";
 import axios from "axios";
 import * as prettier from "prettier/standalone.mjs";
 import pluginTypescript from "prettier/plugins/typescript.mjs";
+import pluginBabel from "prettier/plugins/babel.mjs";
 import pluginEsTree from "prettier/plugins/estree.mjs";
 import { setupTitlebar, attachTitlebarToWindow } from "custom-electron-titlebar/main";
-import { toValue } from "vue";
 
 const require = createRequire(import.meta.url);
 const { attach, detach, refresh } = require("electron-as-wallpaper");
@@ -995,7 +995,7 @@ ipcMain.handle("parse-text", (_e, text, parser) => {
   try {
     return prettier.format(text, {
       parser: parser,
-      plugins: [pluginTypescript, pluginEsTree],
+      plugins: [pluginTypescript, pluginEsTree,pluginBabel],
     });
   } catch (e) {
     return text;
