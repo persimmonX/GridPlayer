@@ -23,6 +23,11 @@ const routes = [
     component: () => import("@/pages/setting/Link.vue"),
   },
   {
+    path: "/web",
+    name: "web",
+    component: () => import("@/pages/setting/WebInput.vue"),
+  },
+  {
     path: "/script",
     name: "script",
     component: () => import("@/pages/setting/Script.vue"),

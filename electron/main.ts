@@ -2,7 +2,7 @@ import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, MenuItemCons
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { addPlayPath, addPlayLink, startStaticServer, saveVideo, getFileById } from "./videoServer";
+import { addPlayPath, addPlayLink, addWeb, startStaticServer, saveVideo, getFileById } from "./videoServer";
 import { readDirRecursive, isNetworkUrl } from "./util";
 import playHistory from "./store/PlayHistory";
 import scriptList from "./store/ScriptList";
@@ -44,6 +44,7 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
 let win: BrowserWindow | null;
 let linkPopup: null | BrowserWindow = null;
+let webPopup: null | BrowserWindow = null;
 let scriptPopup: null | BrowserWindow = null;
 let configPopup: null | BrowserWindow = null;
 let devToolIsOpened = false;
@@ -199,6 +200,15 @@ function getMainWindowPopup(type?: "played" | "all"): any {
           click: () => {
             // 播放在线视频
             linkPopup = createPopupWindow("link", "外部连接", 500, 200);
+          },
+        },
+        {
+          label: "添加WEB",
+          accelerator: "CmdOrCtrl+W",
+          icon: path.join(process.env.VITE_PUBLIC, "basic/019-board.png"),
+          click: () => {
+            // 播放在线视频
+            webPopup = createPopupWindow("web", "网页", 500, 200);
           },
         },
         {
@@ -749,8 +759,10 @@ function createWindow() {
     // titleBarOverlay: true,
     webPreferences: {
       contextIsolation: true,
-      nodeIntegration: false,
-      webSecurity: true,
+      nodeIntegration: true,
+      webviewTag: true,
+      webSecurity: false,
+      allowRunningInsecureContent: true,
       preload: path.join(__dirname, "preload.mjs"),
     },
   });
@@ -871,6 +883,25 @@ ipcMain.on("confirm-link", (e, links) => {
   for (let link of links) {
     doSelectPlayByProtocol(link).then(() => {
       linkPopup?.close();
+    });
+  }
+});
+
+ipcMain.on("open-web-input-large", () => {
+  webPopup?.setContentSize(500, 400, true);
+});
+ipcMain.on("open-web-input-small", () => {
+  webPopup?.setContentSize(500, 200, true);
+});
+ipcMain.on("cancel-web", () => {
+  webPopup?.close();
+});
+ipcMain.on("confirm-web", (e, webs) => {
+  for (let web of webs) {
+    addWeb(web).then(({ url, id, name, mimeType, fileType }: any) => {
+      playHistory.add(web);
+      win?.webContents.send("addWidget", { id, originPath: web, name, url, mimeType, fileType });
+      webPopup?.close();
     });
   }
 });

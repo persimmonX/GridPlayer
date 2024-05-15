@@ -11,6 +11,7 @@ import debounce from "debounce";
 import AceEditor from "./AceEditor.vue";
 import _ from "lodash";
 import WatchDog from "./WatchDog";
+import WebPage from "./WebPage.vue";
 
 const props = defineProps({
   id: {
@@ -42,6 +43,11 @@ const props = defineProps({
     type: Object,
     required: true,
     default: {},
+  },
+  filePath: {
+    type: String,
+    required: false,
+    default: "",
   },
 });
 
@@ -76,7 +82,7 @@ function isVideo(url, mimeType) {
 function isText(mimeType: string) {
   const editableTextContentTypes = [
     "text/plain",
-    "text/html",
+    //"text/html",
     "text/css",
     "application/xml", // 或者 'text/xml'
     "application/json",
@@ -86,6 +92,9 @@ function isText(mimeType: string) {
 }
 function isImage(mimeType) {
   return /^image/.test(mimeType);
+}
+function isWeb(mimeType) {
+  return /html/.test(mimeType);
 }
 onMounted(() => {
   box.value.onmousemove = () => {
@@ -411,9 +420,12 @@ watch(
     <div class="text-box" v-else-if="isText(mimeType)">
       <AceEditor :url="url" :name="name" :fileType="fileType" :mimeType="mimeType"></AceEditor>
     </div>
+    <div class="web-box" v-else-if="isWeb(mimeType)">
+      <WebPage :url="url" :filePath="filePath"></WebPage>
+    </div>
     <div class="other-type" v-else>
       <p>不支持的文件类型</p>
-      <p>文件名:{{ name }}.{{ fileType }},类型:{{ mimeType }}</p>
+      <p>文件名:{{ name }},类型:{{ mimeType }}</p>
     </div>
     <div v-if="active" class="activeBox">
       <div class="title">
@@ -481,7 +493,8 @@ watch(
     object-fit: cover;
   }
 }
-.text-box {
+.text-box,
+.web-box {
   width: 100%;
   height: 100%;
 }

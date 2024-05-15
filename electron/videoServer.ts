@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { separateDomainAndPath } from "./util/index";
 import { v4 as uuidv4 } from "uuid";
 import mime from "mime";
+import axios from "axios";
 import { getProgress } from "./util/request";
 const require = createRequire(import.meta.url);
 const express = require("express");
@@ -141,6 +142,20 @@ app.get("/static-source/:fileExtension", (req: any, res: any) => {
 const pathList = new Map();
 function getMIMEType(fileExtension: string): any {
   return mime.getType(fileExtension);
+  // let fileExtensionReg = /\.[\w\d]+/;
+  // //有后缀
+  // if (fileExtensionReg.test(fileExtension)) {
+  //   return mime.getType(fileExtension);
+  // } else {
+  //   return "text/html";
+  // }
+}
+
+async function getLinkMIMEType(link: string) {
+  return axios.head(link).then(res => {
+    let type = res.headers["content-type"];
+    return type;
+  });
 }
 const addPlayPath = (filePath: string, originId?: string) => {
   return new Promise((resolve, reject) => {
@@ -205,14 +220,23 @@ const addPlayLink = (link: string, originId?: string) => {
       let name = link;
       let fileType = "link";
       pathList.set(id, link);
-      let mimeType = getMIMEType(fileExtension);
-      let middle = createProxyMiddleware({
-        target: domain,
-        changeOrigin: true,
+      getLinkMIMEType(fileExtension).then(mimeType => {
+        let middle = createProxyMiddleware({
+          target: domain,
+          changeOrigin: true,
+        });
+        app.use(`/proxy-link`, middle);
+        resolve({ id, url, fileName, fileExtension, fileType, mimeType, name, originId });
       });
-      app.use(`/proxy-link`, middle);
+    });
+  });
+};
 
-      resolve({ id, url, fileName, fileExtension, fileType, mimeType, name, originId });
+const addWeb = url => {
+  return new Promise((resolve, reject) => {
+    let id = "w" + uuidv4();
+    getLinkMIMEType(url).then(mimeType => {
+      resolve({ id, url, fileName: url, fileExtension: "", fileType: "web", mimeType, name: url, originId: "" });
     });
   });
 };
@@ -243,4 +267,4 @@ function getFileById(id: string) {
   return pathList.get(id);
 }
 
-export { addPlayPath, addPlayLink, saveVideo, getFileById };
+export { addPlayPath, addPlayLink, saveVideo, getFileById, addWeb };
